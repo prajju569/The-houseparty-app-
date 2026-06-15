@@ -17,10 +17,13 @@ export default function AppNavigator() {
     );
   }
 
+  // TODO: remove bypass before release
+  const BYPASS_AUTH = true;
+
   return (
     <NavigationContainer>
-      {!session ? (
-        <AuthNavigator />
+      {BYPASS_AUTH || !session ? (
+        BYPASS_AUTH ? <GuestNavigator /> : <AuthNavigator />
       ) : profile?.role === 'host' ? (
         <HostNavigator />
       ) : (
