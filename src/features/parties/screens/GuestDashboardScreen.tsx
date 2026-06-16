@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EVENTS, RAHUL } from '../../../data/fakeData';
+import { SwipePartyCards } from '../../../shared/components/SwipePartyCards';
 
 const W = Dimensions.get('window').width;
 
@@ -226,11 +227,7 @@ export default function GuestDashboardScreen({ navigation }: any) {
           <QuickAccessGrid navigation={navigation} />
 
           <SectionLabel>Parties for you</SectionLabel>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sugRow}>
-            {EVENTS.map(event => (
-              <SuggestedCard key={event.id} event={event} navigation={navigation} />
-            ))}
-          </ScrollView>
+          <SwipePartyCards events={EVENTS} navigation={navigation} />
 
           {/* Gallery teaser */}
           <SectionLabel>Recent gallery</SectionLabel>
