@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Image, StatusBar, Share, Alert, Platform,
+  Image, StatusBar, Share, Alert, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ViewShot, { ViewShotRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { EVENTS, RAHUL } from '../../../data/fakeData';
+
+const W = Dimensions.get('window').width;
 
 const T = {
   bg: '#0C0C0C', card: '#161616', elevated: '#1E1E1E',
@@ -107,15 +111,32 @@ export default function EventDetailScreen({ route, navigation }: any) {
   const [rsvped, setRsvped] = useState(alreadyRsvped);
   const [activeTab, setActiveTab] = useState<'details' | 'playlist'>('details');
 
+  const ticketRef = useRef<ViewShotRef>(null);
   const eventDate = new Date(event.date);
   const dateStr = eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
   const timeStr = eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   const isFull = event.spotsLeft === 0;
 
+  async function handleShareTicket() {
+    try {
+      const uri = await (ticketRef.current as any).capture();
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share your ticket',
+        });
+      } else {
+        Share.share({ message: `locked in for ${event.title} no cap 🎟️ #HP-4829` });
+      }
+    } catch {
+      Share.share({ message: `locked in for ${event.title} no cap 🎟️ #HP-4829` });
+    }
+  }
+
   function handleShare() {
     Share.share({
-      message: `🎉 Check out "${event.title}" on houseparty!\n📍 ${event.area}, ${event.city}\n📅 ${dateStr} at ${timeStr}\nhttps://houseparty.app/events/${event.id}?ref=${RAHUL.referralCode}`,
-      title: event.title,
+      message: `just copped my ticket to ${event.title} 🎟️\n📍 ${event.area} · ${dateStr}\nit's giving main character energy fr`,
     });
   }
 
@@ -169,34 +190,36 @@ export default function EventDetailScreen({ route, navigation }: any) {
 
           {/* ── CONFIRMED TICKET CARD ─────────────────────────────── */}
           {rsvped ? (
-            <View style={s.ticketCard}>
-              {/* Gold glow accent */}
-              <View style={s.ticketGlow} />
-
-              {/* Header row */}
-              <View style={s.ticketHeader}>
-                <View style={s.ticketConfirmedBadge}>
-                  <Text style={s.ticketConfirmedDot}>✓</Text>
-                  <Text style={s.ticketConfirmedLabel}>CONFIRMED</Text>
+            <ViewShot ref={ticketRef} options={{ format: 'png', quality: 1 }} style={s.ticketCard}>
+              {/* Cover photo with overlay */}
+              <View style={s.ticketCoverWrap}>
+                <Image source={{ uri: event.coverImage }} style={s.ticketCoverImg} resizeMode="cover" />
+                <View style={s.ticketCoverOverlay} />
+                <View style={s.ticketCoverTop}>
+                  <View style={s.ticketConfirmedBadge}>
+                    <Text style={s.ticketConfirmedDot}>✓</Text>
+                    <Text style={s.ticketConfirmedLabel}>YOU'RE IN</Text>
+                  </View>
+                  <Text style={s.ticketBrandText}>houseparty ✦</Text>
                 </View>
-                <Text style={s.ticketEventLabel}>YOUR TICKET</Text>
+                <View style={s.ticketCoverBottom}>
+                  <Text style={s.ticketEventLabel}>YOUR TICKET</Text>
+                  <Text style={s.ticketEventName}>{event.title}</Text>
+                  <Text style={s.ticketEventDate}>{dateStr} · {timeStr}</Text>
+                  <Text style={s.ticketEventVenue}>📍 {event.area}, {event.city}</Text>
+                </View>
               </View>
 
-              {/* Event name */}
-              <Text style={s.ticketEventName}>{event.title}</Text>
-              <Text style={s.ticketEventDate}>{dateStr} · {timeStr}</Text>
-              <Text style={s.ticketEventVenue}>📍 {event.area}, {event.city}</Text>
-
-              {/* Perforated divider */}
+              {/* Perforated tear line */}
               <View style={s.ticketPerf}>
                 <View style={s.perfNubL} />
                 <View style={s.perfDashes} />
                 <View style={s.perfNubR} />
               </View>
 
-              {/* Booking ID — prominent */}
+              {/* Booking ID + meta */}
               <View style={s.ticketIdRow}>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={s.ticketIdLabel}>BOOKING ID</Text>
                   <Text style={s.ticketIdValue}>#HP-4829</Text>
                 </View>
@@ -210,7 +233,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
                 </View>
               </View>
 
-              {/* Host + chat */}
+              {/* Host row */}
               <TouchableOpacity
                 style={s.ticketHostRow}
                 onPress={() => navigation.navigate('Chat', { hostId: event.host.id })}
@@ -225,7 +248,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
                   <Text style={s.ticketChatText}>💬 Message Host</Text>
                 </View>
               </TouchableOpacity>
-            </View>
+            </ViewShot>
           ) : (
             <>
               {/* Host row — unbooked view */}
@@ -345,8 +368,8 @@ export default function EventDetailScreen({ route, navigation }: any) {
       {/* Sticky bottom bar */}
       <View style={s.cta}>
         {rsvped ? (
-          <TouchableOpacity style={s.shareTicketBtn} onPress={handleShare} activeOpacity={0.85}>
-            <Text style={s.shareTicketText}>↑  Share Ticket</Text>
+          <TouchableOpacity style={s.shareTicketBtn} onPress={handleShareTicket} activeOpacity={0.85}>
+            <Text style={s.shareTicketText}>↑  flex on the feed — share ticket</Text>
           </TouchableOpacity>
         ) : (
           <View style={s.ctaInner}>
@@ -491,38 +514,47 @@ const s = StyleSheet.create({
     borderColor: 'rgba(201,168,76,0.35)',
     marginBottom: 20,
     overflow: 'hidden',
-    position: 'relative',
   },
-  ticketGlow: {
-    position: 'absolute', top: -50, right: -50,
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(201,168,76,0.07)',
+
+  // Cover photo stub (top half of ticket)
+  ticketCoverWrap: { height: 190, position: 'relative' },
+  ticketCoverImg: { width: '100%', height: '100%' },
+  ticketCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.52)',
   },
-  ticketHeader: {
+  ticketCoverTop: {
+    position: 'absolute', top: 14, left: 14, right: 14,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12,
   },
   ticketConfirmedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(0,211,127,0.12)', borderRadius: 20,
+    backgroundColor: 'rgba(0,211,127,0.18)', borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(0,211,127,0.3)',
+    borderWidth: 1, borderColor: 'rgba(0,211,127,0.45)',
   },
   ticketConfirmedDot: { color: T.green, fontSize: 11, fontWeight: '800' },
-  ticketConfirmedLabel: { color: T.green, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  ticketEventLabel: { color: T.textMute, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
-
+  ticketConfirmedLabel: { color: T.green, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
+  ticketBrandText: {
+    color: 'rgba(255,255,255,0.55)', fontSize: 11,
+    fontWeight: '700', letterSpacing: 1,
+  },
+  ticketCoverBottom: {
+    position: 'absolute', bottom: 14, left: 16, right: 16,
+  },
+  ticketEventLabel: {
+    color: 'rgba(255,255,255,0.5)', fontSize: 9,
+    fontWeight: '700', letterSpacing: 2, marginBottom: 4,
+  },
   ticketEventName: {
-    color: T.text, fontSize: 22, fontWeight: '800',
-    paddingHorizontal: 18, marginBottom: 4,
+    color: '#fff', fontSize: 22, fontWeight: '800',
+    marginBottom: 4, lineHeight: 26,
   },
   ticketEventDate: {
-    color: T.gold, fontSize: 13, fontWeight: '600',
-    paddingHorizontal: 18, marginBottom: 2,
+    color: T.gold, fontSize: 12, fontWeight: '600', marginBottom: 2,
   },
   ticketEventVenue: {
-    color: T.textSub, fontSize: 12,
-    paddingHorizontal: 18, marginBottom: 16,
+    color: 'rgba(255,255,255,0.65)', fontSize: 12,
   },
 
   // Perforated tear line
@@ -531,50 +563,44 @@ const s = StyleSheet.create({
     marginHorizontal: -1,
   },
   perfNubL: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: T.bg,
-    borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
-    marginLeft: -9,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: T.bg, marginLeft: -10,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)',
   },
   perfDashes: {
     flex: 1, height: 1,
     borderStyle: 'dashed', borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.25)',
-    marginHorizontal: 4,
+    borderColor: 'rgba(201,168,76,0.3)',
+    marginHorizontal: 6,
   },
   perfNubR: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: T.bg,
-    borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
-    marginRight: -9,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: T.bg, marginRight: -10,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)',
   },
 
   // Booking ID row
   ticketIdRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, gap: 0,
+    paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16,
   },
   ticketIdLabel: {
     color: T.textMute, fontSize: 9, fontWeight: '700',
     letterSpacing: 1.5, marginBottom: 5,
   },
   ticketIdValue: {
-    color: T.gold, fontSize: 22, fontWeight: '900',
-    letterSpacing: 1,
-    flex: 1,
+    color: T.gold, fontSize: 24, fontWeight: '900', letterSpacing: 1,
   },
   ticketMetaCol: {
     alignItems: 'center', paddingLeft: 16,
     borderLeftWidth: 1, borderLeftColor: T.border,
-    minWidth: 52,
+    minWidth: 56,
   },
   ticketMetaLabel: {
     color: T.textMute, fontSize: 9, fontWeight: '700',
     letterSpacing: 1.2, marginBottom: 4,
   },
-  ticketMetaValue: {
-    color: T.text, fontSize: 15, fontWeight: '800',
-  },
+  ticketMetaValue: { color: T.text, fontSize: 15, fontWeight: '800' },
 
   // Host row inside ticket
   ticketHostRow: {
@@ -583,9 +609,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 14,
     borderTopWidth: 1, borderTopColor: T.border,
   },
-  ticketHostAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: T.card,
-  },
+  ticketHostAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.card },
   ticketHostLabel: { color: T.textMute, fontSize: 10, marginBottom: 2 },
   ticketHostName: { color: T.text, fontSize: 13, fontWeight: '700' },
   ticketChatChip: {
