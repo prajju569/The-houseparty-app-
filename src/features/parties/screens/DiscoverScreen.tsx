@@ -79,9 +79,22 @@ export default function DiscoverScreen({ navigation }: any) {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.list}>
           {filtered.length === 0 && (
             <View style={s.empty}>
-              <Text style={s.emptyIcon}>🔎</Text>
-              <Text style={s.emptyText}>No parties found</Text>
-              <Text style={s.emptySub}>Try a different filter or search term</Text>
+              <Text style={s.emptyIcon}>🎈</Text>
+              <Text style={s.emptyText}>No parties here</Text>
+              <Text style={s.emptySub}>
+                {query
+                  ? `No results for "${query}"${activeFilter !== 'All' ? ` in ${activeFilter}` : ''}`
+                  : `No ${activeFilter} parties available right now`}
+              </Text>
+              {(query || activeFilter !== 'All') && (
+                <TouchableOpacity
+                  style={s.clearBtn}
+                  onPress={() => { setQuery(''); setActiveFilter('All'); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.clearBtnText}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
           {filtered.map(event => {
@@ -195,14 +208,20 @@ const s = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, gap: 8 },
   emptyIcon: { fontSize: 40 },
   emptyText: { color: T.text, fontSize: 18, fontWeight: '700' },
-  emptySub: { color: T.textMute, fontSize: 14 },
+  emptySub: { color: T.textMute, fontSize: 14, textAlign: 'center', paddingHorizontal: 20 },
+  clearBtn: {
+    marginTop: 8, backgroundColor: T.elevated, borderRadius: 20,
+    paddingHorizontal: 20, paddingVertical: 10,
+    borderWidth: 1, borderColor: T.border,
+  },
+  clearBtnText: { color: T.gold, fontSize: 14, fontWeight: '600' },
 
   card: {
     backgroundColor: T.card, borderRadius: 20,
     borderWidth: 1, borderColor: T.border, overflow: 'hidden',
   },
   cardThumb: { height: 180, position: 'relative' },
-  thumbImg: { width: '100%', height: '100%' },
+  thumbImg: { width: '100%', height: '100%', backgroundColor: T.elevated },
   closedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',

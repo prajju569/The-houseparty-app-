@@ -18,6 +18,10 @@ const W = Dimensions.get('window').width;
 
 const MY_POSTS = GALLERY_POSTS.filter(p => p.posterName === RAHUL.name);
 const ATTENDED = EVENTS.filter(e => e.status === 'closed');
+// Simulated reviews Rahul has written (first review of each attended event)
+const MY_REVIEWS = ATTENDED.flatMap(e =>
+  e.reviews.slice(0, 1).map(r => ({ ...r, eventTitle: e.title, eventId: e.id }))
+);
 
 export default function ProfileScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'gallery' | 'events' | 'reviews'>('gallery');
@@ -45,7 +49,11 @@ export default function ProfileScreen({ navigation }: any) {
               <Text style={s.city}>📍 {RAHUL.city}</Text>
               <Text style={s.member}>Member since {RAHUL.memberSince}</Text>
             </View>
-            <TouchableOpacity style={s.editBtn}>
+            <TouchableOpacity
+              style={s.editBtn}
+              onPress={() => Alert.alert('Edit Profile', 'Profile editing coming soon.', [{ text: 'OK' }])}
+              activeOpacity={0.7}
+            >
               <Text style={s.editText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -169,18 +177,40 @@ export default function ProfileScreen({ navigation }: any) {
 
           {activeTab === 'reviews' && (
             <View style={s.reviewsTab}>
-              <View style={s.reviewPlaceholder}>
-                <Text style={s.reviewIcon}>💬</Text>
-                <Text style={s.reviewText}>Your reviews will appear here after you rate events you've attended.</Text>
-                {ATTENDED.length > 0 && (
-                  <TouchableOpacity
-                    style={s.rateBtn}
-                    onPress={() => navigation.navigate('ClosedEvent', { eventId: ATTENDED[0].id })}
-                  >
-                    <Text style={s.rateBtnText}>Rate {ATTENDED[0].title} →</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              {MY_REVIEWS.length === 0 ? (
+                <View style={s.reviewPlaceholder}>
+                  <Text style={s.reviewIcon}>💬</Text>
+                  <Text style={s.reviewText}>Your reviews will appear here after you rate events you've attended.</Text>
+                  {ATTENDED.length > 0 && (
+                    <TouchableOpacity
+                      style={s.rateBtn}
+                      onPress={() => navigation.navigate('ClosedEvent', { eventId: ATTENDED[0].id })}
+                    >
+                      <Text style={s.rateBtnText}>Rate {ATTENDED[0].title} →</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {MY_REVIEWS.map(r => (
+                    <TouchableOpacity
+                      key={r.id}
+                      style={s.reviewCard}
+                      onPress={() => navigation.navigate('ClosedEvent', { eventId: r.eventId })}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={s.reviewEventTitle}>{r.eventTitle}</Text>
+                      <View style={{ flexDirection: 'row', gap: 2, marginVertical: 5 }}>
+                        {[1,2,3,4,5].map(n => (
+                          <Text key={n} style={{ color: n <= r.rating ? T.gold : T.border, fontSize: 13 }}>★</Text>
+                        ))}
+                      </View>
+                      <Text style={s.reviewComment} numberOfLines={3}>{r.comment}</Text>
+                      <Text style={s.reviewDate}>{r.date}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           )}
 
@@ -203,6 +233,8 @@ export default function ProfileScreen({ navigation }: any) {
                       { text: 'Cancel' },
                       { text: 'Sign Out', style: 'destructive' },
                     ]);
+                  } else {
+                    Alert.alert(item.label, 'Coming soon! We\'re working on this.', [{ text: 'OK' }]);
                   }
                 }}
               >
@@ -345,6 +377,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 10, marginTop: 4,
   },
   rateBtnText: { color: '#000', fontSize: 14, fontWeight: '700' },
+  reviewCard: {
+    backgroundColor: T.card, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: T.border,
+  },
+  reviewEventTitle: { color: T.textMute, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  reviewComment: { color: T.textSub, fontSize: 13, lineHeight: 19 },
+  reviewDate: { color: T.textMute, fontSize: 11, marginTop: 6 },
 
   empty: { alignItems: 'center', padding: 40, gap: 8 },
   emptyIcon: { fontSize: 40 },

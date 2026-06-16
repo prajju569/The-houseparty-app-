@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, Image, KeyboardAvoidingView, Platform, StatusBar,
+  StyleSheet, Image, KeyboardAvoidingView, Platform, StatusBar, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HOSTS, INITIAL_MESSAGES, ChatMessage } from '../../../data/fakeData';
@@ -14,20 +14,60 @@ const T = {
 
 const HOST = HOSTS[0];
 
+function TypingDots() {
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dot3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animate = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.delay(600 - delay),
+        ])
+      ).start();
+    animate(dot1, 0);
+    animate(dot2, 200);
+    animate(dot3, 400);
+  }, []);
+
+  const dotStyle = (anim: Animated.Value) => ({
+    width: 7, height: 7, borderRadius: 3.5,
+    backgroundColor: T.textMute,
+    marginHorizontal: 2,
+    opacity: anim,
+    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }],
+  });
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14 }}>
+      <Animated.View style={dotStyle(dot1)} />
+      <Animated.View style={dotStyle(dot2)} />
+      <Animated.View style={dotStyle(dot3)} />
+    </View>
+  );
+}
+
 export default function ChatScreen({ navigation }: any) {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   function send() {
     if (!input.trim()) return;
     const now = new Date();
-    const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     const newMsg: ChatMessage = { id: `m${Date.now()}`, from: 'me', text: input.trim(), time };
     setMessages(prev => [...prev, newMsg]);
     setInput('');
+    setIsTyping(true);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
     setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
+      setIsTyping(false);
       const replies = [
         'Got it! See you there 🎉',
         'Of course! Any other questions?',
@@ -38,11 +78,11 @@ export default function ChatScreen({ navigation }: any) {
         id: `m${Date.now() + 1}`,
         from: 'host',
         text: replies[Math.floor(Math.random() * replies.length)],
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
       };
       setMessages(prev => [...prev, reply]);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 1200);
+    }, 1400);
   }
 
   return (
@@ -84,20 +124,35 @@ export default function ChatScreen({ navigation }: any) {
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
             showsVerticalScrollIndicator={false}
           >
-            {messages.map(msg => (
-              <View
-                key={msg.id}
-                style={[s.bubble, msg.from === 'me' ? s.myBubble : s.hostBubble]}
-              >
-                {msg.from === 'host' && (
-                  <Image source={{ uri: HOST.avatar }} style={s.bubbleAvatar} />
-                )}
-                <View style={[s.bubbleBody, msg.from === 'me' ? s.myBody : s.hostBody]}>
-                  <Text style={[s.bubbleText, msg.from === 'me' && s.myText]}>{msg.text}</Text>
-                  <Text style={[s.bubbleTime, msg.from === 'me' && s.myTimeText]}>{msg.time}</Text>
+            {messages.map((msg, idx) => {
+              const prevMsg = idx > 0 ? messages[idx - 1] : null;
+              const showAvatar = msg.from === 'host' && (!prevMsg || prevMsg.from !== 'host');
+              return (
+                <View
+                  key={msg.id}
+                  style={[s.bubble, msg.from === 'me' ? s.myBubble : s.hostBubble]}
+                >
+                  {msg.from === 'host' && (
+                    <Image
+                      source={{ uri: HOST.avatar }}
+                      style={[s.bubbleAvatar, !showAvatar && s.avatarHidden]}
+                    />
+                  )}
+                  <View style={[s.bubbleBody, msg.from === 'me' ? s.myBody : s.hostBody]}>
+                    <Text style={[s.bubbleText, msg.from === 'me' && s.myText]}>{msg.text}</Text>
+                    <Text style={[s.bubbleTime, msg.from === 'me' && s.myTimeText]}>{msg.time}</Text>
+                  </View>
+                </View>
+              );
+            })}
+            {isTyping && (
+              <View style={[s.bubble, s.hostBubble]}>
+                <Image source={{ uri: HOST.avatar }} style={s.bubbleAvatar} />
+                <View style={[s.bubbleBody, s.hostBody]}>
+                  <TypingDots />
                 </View>
               </View>
-            ))}
+            )}
           </ScrollView>
 
           {/* Input bar */}
@@ -166,6 +221,7 @@ const s = StyleSheet.create({
   hostBubble: { justifyContent: 'flex-start' },
 
   bubbleAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: T.elevated },
+  avatarHidden: { opacity: 0 },
 
   bubbleBody: {
     maxWidth: '75%', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10,

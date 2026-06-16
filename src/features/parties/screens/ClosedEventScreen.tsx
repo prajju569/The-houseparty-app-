@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Image, StatusBar, TextInput, Alert, Dimensions,
+  Image, StatusBar, TextInput, Alert, Dimensions, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EVENTS, RAHUL } from '../../../data/fakeData';
@@ -17,10 +17,16 @@ const W = Dimensions.get('window').width;
 
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
+    <View style={{ flexDirection: 'row', gap: 6 }}>
       {[1, 2, 3, 4, 5].map(n => (
-        <TouchableOpacity key={n} onPress={() => onChange(n)} activeOpacity={0.7}>
-          <Text style={{ fontSize: 36, color: n <= value ? T.gold : T.elevated }}>★</Text>
+        <TouchableOpacity
+          key={n}
+          onPress={() => onChange(n)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          style={{ padding: 4 }}
+        >
+          <Text style={{ fontSize: 28, color: n <= value ? T.gold : T.elevated }}>★</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -66,6 +72,7 @@ export default function ClosedEventScreen({ route, navigation }: any) {
   const [myReview, setMyReview] = useState('');
   const [reviews, setReviews] = useState(event.reviews);
   const [submitted, setSubmitted] = useState(false);
+  const successAnim = useRef(new Animated.Value(0)).current;
 
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
@@ -78,12 +85,14 @@ export default function ClosedEventScreen({ route, navigation }: any) {
       user: RAHUL.name,
       avatar: RAHUL.avatar,
       rating: myRating,
-      comment: myReview || 'Great event!',
+      comment: myReview.trim() || 'Great event!',
       date: 'Just now',
     };
     setReviews(prev => [newReview, ...prev]);
     setSubmitted(true);
-    Alert.alert('Thanks!', 'Your review has been posted 🙌');
+    Animated.spring(successAnim, {
+      toValue: 1, damping: 14, stiffness: 120, useNativeDriver: true,
+    }).start();
   }
 
   return (
@@ -184,10 +193,16 @@ export default function ClosedEventScreen({ route, navigation }: any) {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={s.doneCard}>
+            <Animated.View style={[s.doneCard, {
+              opacity: successAnim,
+              transform: [{ scale: successAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
+            }]}>
               <Text style={s.doneIcon}>✓</Text>
-              <Text style={s.doneText}>Review posted!</Text>
-            </View>
+              <View>
+                <Text style={s.doneText}>Review posted!</Text>
+                <Text style={s.doneSub}>Thanks for sharing your experience 🙌</Text>
+              </View>
+            </Animated.View>
           )}
 
           {/* Reviews */}
@@ -292,12 +307,13 @@ const s = StyleSheet.create({
   submitText: { color: '#000', fontSize: 15, fontWeight: '700' },
 
   doneCard: {
-    backgroundColor: T.greenDim, borderRadius: 16, padding: 20,
-    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,211,127,0.3)',
-    flexDirection: 'row', gap: 12, justifyContent: 'center',
+    backgroundColor: T.greenDim, borderRadius: 16, padding: 18,
+    borderWidth: 1, borderColor: 'rgba(0,211,127,0.3)',
+    flexDirection: 'row', gap: 14, alignItems: 'center',
   },
-  doneIcon: { color: T.green, fontSize: 22 },
+  doneIcon: { color: T.green, fontSize: 24 },
   doneText: { color: T.green, fontSize: 15, fontWeight: '700' },
+  doneSub: { color: 'rgba(0,211,127,0.7)', fontSize: 12, marginTop: 2 },
 
   reviewsList: { gap: 12 },
 });

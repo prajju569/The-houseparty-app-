@@ -53,18 +53,11 @@ function TicketCard({ navigation }: { navigation: any }) {
           <TouchableOpacity onPress={() => setSaved(!saved)} style={s.saveBtn}>
             <Text style={{ fontSize: 20 }}>{saved ? '❤️' : '🤍'}</Text>
           </TouchableOpacity>
-          <View style={s.qrBox}>
-            <View style={s.qrInner}>
-              {[0, 1, 2].map(r => (
-                <View key={r} style={s.qrRow}>
-                  {[0, 1, 2].map(c => (
-                    <View key={c} style={[s.qrCell, (r === 0 || r === 2) && (c === 0 || c === 2) && s.qrCorner]} />
-                  ))}
-                </View>
-              ))}
-            </View>
+          <View style={s.ticketIdBox}>
+            <Text style={s.ticketIdLabel}>BOOKING ID</Text>
+            <Text style={s.ticketId}>#HP-4829</Text>
           </View>
-          <Text style={s.qrLabel}>SCAN AT DOOR</Text>
+          <Text style={s.qrLabel}>SHOW AT DOOR</Text>
         </View>
       </View>
 
@@ -296,15 +289,13 @@ const s = StyleSheet.create({
   ticketHost: { fontSize: 13, color: T.textSub },
   ticketRight: { alignItems: 'center', gap: 6, marginLeft: 12 },
   saveBtn: { padding: 2 },
-  qrBox: {
-    width: 64, height: 64, borderRadius: 10, backgroundColor: T.elevated,
-    alignItems: 'center', justifyContent: 'center',
+  ticketIdBox: {
+    alignItems: 'center', backgroundColor: T.elevated,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
     borderWidth: 1, borderColor: T.border,
   },
-  qrInner: { gap: 4 },
-  qrRow: { flexDirection: 'row', gap: 4 },
-  qrCell: { width: 12, height: 12, borderRadius: 2, backgroundColor: T.border },
-  qrCorner: { backgroundColor: T.gold, borderRadius: 3 },
+  ticketIdLabel: { color: T.textMute, fontSize: 8, fontWeight: '700', letterSpacing: 1 },
+  ticketId: { color: T.gold, fontSize: 15, fontWeight: '800', marginTop: 2 },
   qrLabel: { fontSize: 8, fontWeight: '700', color: T.textMute, letterSpacing: 1 },
 
   perfRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: -1, height: 20 },

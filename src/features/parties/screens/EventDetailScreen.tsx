@@ -109,6 +109,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
   const eventDate = new Date(event.date);
   const dateStr = eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
   const timeStr = eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const isFull = event.spotsLeft === 0;
 
   function handleShare() {
     Share.share({
@@ -118,9 +119,16 @@ export default function EventDetailScreen({ route, navigation }: any) {
   }
 
   function handleRSVP() {
-    if (event.spotsLeft === 0) { Alert.alert('Event Full', 'No spots left. Join the waitlist?'); return; }
+    if (rsvped) return;
+    if (isFull) {
+      Alert.alert('Join Waitlist', `You'll be notified if a spot opens for ${event.title}.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Join Waitlist', onPress: () => setRsvped(true) },
+      ]);
+      return;
+    }
     setRsvped(true);
-    Alert.alert('🎉 You\'re in!', `RSVP confirmed for ${event.title}. Check your RSVPs for your entry ticket.`);
+    Alert.alert('🎉 You\'re in!', `RSVP confirmed for ${event.title}.\nCheck your ticket in Saved → RSVPs.`);
   }
 
   return (
@@ -280,17 +288,22 @@ export default function EventDetailScreen({ route, navigation }: any) {
         <View style={s.ctaInner}>
           <View>
             <Text style={s.ctaFee}>{event.fee === 0 ? 'Free Entry' : `₹${event.fee}`}</Text>
-            <Text style={s.ctaSpots}>
-              {event.spotsLeft === 0 ? 'Event full' : `${event.spotsLeft} spots left`}
+            <Text style={[s.ctaSpots, isFull && { color: '#FF5A5A' }]}>
+              {rsvped
+                ? isFull ? '✓ On waitlist' : '✓ Confirmed'
+                : isFull ? 'Event full · Waitlist open' : `${event.spotsLeft} spots left`}
             </Text>
           </View>
           <TouchableOpacity
-            style={[s.rsvpBtn, (rsvped || event.spotsLeft === 0) && s.rsvpBtnDone]}
+            style={[
+              s.rsvpBtn,
+              rsvped ? s.rsvpBtnDone : isFull ? s.rsvpBtnWaitlist : s.rsvpBtnNow,
+            ]}
             onPress={handleRSVP}
-            activeOpacity={0.85}
+            activeOpacity={rsvped ? 1 : 0.85}
           >
-            <Text style={s.rsvpText}>
-              {rsvped ? '✓ RSVP\'d' : event.spotsLeft === 0 ? 'Join Waitlist' : 'RSVP Now'}
+            <Text style={[s.rsvpText, isFull && !rsvped && s.rsvpTextWaitlist]}>
+              {rsvped ? '✓  RSVP\'d' : isFull ? 'Join Waitlist' : 'RSVP Now  →'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -418,10 +431,16 @@ const s = StyleSheet.create({
   ctaFee: { color: T.text, fontSize: 20, fontWeight: '800' },
   ctaSpots: { color: T.textMute, fontSize: 12, marginTop: 2 },
   rsvpBtn: {
-    backgroundColor: T.gold, borderRadius: 14,
+    borderRadius: 14,
     paddingHorizontal: 28, paddingVertical: 14,
   },
+  rsvpBtnNow: { backgroundColor: T.gold },
   rsvpBtnDone: { backgroundColor: T.green },
+  rsvpBtnWaitlist: {
+    backgroundColor: 'transparent',
+    borderWidth: 1, borderColor: T.border,
+  },
   rsvpText: { color: '#000', fontSize: 15, fontWeight: '700' },
+  rsvpTextWaitlist: { color: T.textSub },
 });
 
