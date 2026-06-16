@@ -1,24 +1,48 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GuestDashboardScreen from '../features/parties/screens/GuestDashboardScreen';
 import DiscoverScreen from '../features/parties/screens/DiscoverScreen';
+import EventDetailScreen from '../features/parties/screens/EventDetailScreen';
+import ClosedEventScreen from '../features/parties/screens/ClosedEventScreen';
+import GalleryScreen from '../features/parties/screens/GalleryScreen';
+import ChatScreen from '../features/chat/screens/ChatScreen';
+import SavedScreen from '../features/saved/screens/SavedScreen';
 import ProfileScreen from '../features/profile/screens/ProfileScreen';
 
-export type GuestTabParamList = {
+export type GuestStackParamList = {
   Home: undefined;
   Discover: undefined;
+  Saved: undefined;
   Profile: undefined;
+  EventDetail: { eventId: string };
+  ClosedEvent: { eventId: string };
+  Gallery: { eventId?: string };
+  Chat: { hostId?: string };
 };
 
-const Tab = createBottomTabNavigator<GuestTabParamList>();
+const Stack = createNativeStackNavigator<GuestStackParamList>();
 
 export default function GuestNavigator() {
   return (
-    // tabBar hidden — GuestDashboardScreen renders its own premium nav bar
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
-      <Tab.Screen name="Home"     component={GuestDashboardScreen} />
-      <Tab.Screen name="Discover" component={DiscoverScreen} />
-      <Tab.Screen name="Profile"  component={ProfileScreen} />
-    </Tab.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: '#0C0C0C' },
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="Home"        component={GuestDashboardScreen} />
+      <Stack.Screen name="Discover"    component={DiscoverScreen} />
+      <Stack.Screen name="Saved"       component={SavedScreen} />
+      <Stack.Screen name="Profile"     component={ProfileScreen} />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="ClosedEvent" component={ClosedEventScreen} />
+      <Stack.Screen name="Gallery"     component={GalleryScreen} />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+    </Stack.Navigator>
   );
 }

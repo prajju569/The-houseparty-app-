@@ -1,45 +1,19 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Dimensions,
-  StatusBar,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Platform, Dimensions, StatusBar, Share, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EVENTS, RAHUL } from '../../../data/fakeData';
 
 const W = Dimensions.get('window').width;
 
-// ── Design tokens (CRED-style dark) ──────────────────────────────────────────
 const T = {
-  bg:       '#0C0C0C',
-  card:     '#161616',
-  elevated: '#1E1E1E',
-  border:   '#2A2A2A',
-  gold:     '#C9A84C',
-  goldDim:  'rgba(201,168,76,0.15)',
-  green:    '#00D37F',
-  greenDim: 'rgba(0,211,127,0.15)',
-  text:     '#F0F0EE',
-  textSub:  '#A0A09A',
-  textMute: '#5A5A56',
+  bg: '#0C0C0C', card: '#161616', elevated: '#1E1E1E',
+  border: '#2A2A2A', gold: '#C9A84C', goldDim: 'rgba(201,168,76,0.15)',
+  green: '#00D37F', greenDim: 'rgba(0,211,127,0.15)',
+  text: '#F0F0EE', textSub: '#A0A09A', textMute: '#5A5A56',
 };
-
-const QUICK_ACCESS = [
-  { icon: '🎟️', label: 'My RSVPs',      sublabel: '2 upcoming' },
-  { icon: '🧭', label: 'Browse',         sublabel: 'Nearby parties' },
-  { icon: '🎁', label: 'Invite Friends', sublabel: 'Earn ₹100' },
-  { icon: '💬', label: 'Contact Host',   sublabel: 'Message' },
-];
-
-const SUGGESTED = [
-  { id: 's1', title: 'Sunset Jazz & Gin', area: 'Hauz Khas, Delhi',      date: 'Fri 20', fee: 0,   spots: 4,  color: '#1A1A2E' },
-  { id: 's2', title: 'EDM Warehouse',     area: 'Indiranagar, Blr',      date: 'Sat 21', fee: 599, spots: 12, color: '#2D1B4E' },
-  { id: 's3', title: 'Rooftop Antakshari',area: 'Powai, Mumbai',         date: 'Sun 22', fee: 199, spots: 7,  color: '#1B2D1E' },
-];
 
 function SectionLabel({ children }: { children: string }) {
   return <Text style={s.sectionLabel}>{children.toUpperCase()}</Text>;
@@ -51,27 +25,26 @@ function PerforatedDivider() {
     <View style={s.perfRow}>
       <View style={s.perfNubLeft} />
       <View style={s.perfLine}>
-        {Array.from({ length: dotCount }).map((_, i) => (
-          <View key={i} style={s.perfDot} />
-        ))}
+        {Array.from({ length: dotCount }).map((_, i) => <View key={i} style={s.perfDot} />)}
       </View>
       <View style={s.perfNubRight} />
     </View>
   );
 }
 
-function TicketCard() {
+function TicketCard({ navigation }: { navigation: any }) {
   const [saved, setSaved] = useState(false);
+  const event = EVENTS[0];
+
   return (
     <View style={s.ticket}>
-      {/* Top stub */}
       <View style={s.ticketTop}>
         <View style={s.ticketMeta}>
           <Text style={s.ticketEyebrow}>TONIGHT · 9:00 PM</Text>
-          <Text style={s.ticketTitle}>Retro Bollywood{'\n'}Night</Text>
+          <Text style={s.ticketTitle}>{event.title}</Text>
           <View style={s.ticketRow}>
             <View style={s.verifiedDot} />
-            <Text style={s.ticketHost}>Hosted by Aryan K.</Text>
+            <Text style={s.ticketHost}>Hosted by {event.host.name}</Text>
           </View>
         </View>
         <View style={s.ticketRight}>
@@ -83,10 +56,7 @@ function TicketCard() {
               {[0, 1, 2].map(r => (
                 <View key={r} style={s.qrRow}>
                   {[0, 1, 2].map(c => (
-                    <View
-                      key={c}
-                      style={[s.qrCell, (r === 0 || r === 2) && (c === 0 || c === 2) && s.qrCorner]}
-                    />
+                    <View key={c} style={[s.qrCell, (r === 0 || r === 2) && (c === 0 || c === 2) && s.qrCorner]} />
                   ))}
                 </View>
               ))}
@@ -98,7 +68,6 @@ function TicketCard() {
 
       <PerforatedDivider />
 
-      {/* Bottom stub */}
       <View style={s.ticketBottom}>
         <View style={s.ticketDetail}>
           <Text style={s.detailLabel}>VENUE</Text>
@@ -119,27 +88,39 @@ function TicketCard() {
         </View>
       </View>
 
-      {/* Tags */}
       <View style={s.ticketTags}>
-        {['Bollywood', 'Dance', '🍻 Bar Open', '🚭 No Smoking'].map(tag => (
-          <View key={tag} style={s.tag}>
-            <Text style={s.tagText}>{tag}</Text>
-          </View>
+        {event.tags.map(tag => (
+          <View key={tag} style={s.tag}><Text style={s.tagText}>{tag}</Text></View>
         ))}
       </View>
 
-      <TouchableOpacity style={s.ticketCta} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={s.ticketCta}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+      >
         <Text style={s.ticketCtaText}>View Full Details →</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-function QuickAccessGrid() {
+function QuickAccessGrid({ navigation }: { navigation: any }) {
+  const items = [
+    { icon: '🎟️', label: 'My RSVPs',      sublabel: '2 upcoming',   onPress: () => navigation.navigate('Saved') },
+    { icon: '🧭', label: 'Browse',         sublabel: 'Nearby parties', onPress: () => navigation.navigate('Discover') },
+    { icon: '🎁', label: 'Invite Friends', sublabel: 'Earn ₹100',
+      onPress: () => Share.share({
+        message: `Hey! Join me on Houseparty 🎉 Use my invite link to get ₹100 off!\n${RAHUL.referralUrl}`,
+      }),
+    },
+    { icon: '💬', label: 'Contact Host',   sublabel: 'Message',      onPress: () => navigation.navigate('Chat') },
+  ];
+
   return (
     <View style={s.qaGrid}>
-      {QUICK_ACCESS.map(item => (
-        <TouchableOpacity key={item.label} activeOpacity={0.7} style={s.qaCell}>
+      {items.map(item => (
+        <TouchableOpacity key={item.label} activeOpacity={0.7} style={s.qaCell} onPress={item.onPress}>
           <View style={s.qaCard}>
             <Text style={s.qaIcon}>{item.icon}</Text>
             <Text style={s.qaLabel}>{item.label}</Text>
@@ -151,20 +132,34 @@ function QuickAccessGrid() {
   );
 }
 
-function SuggestedCard({ item }: { item: (typeof SUGGESTED)[0] }) {
+function SuggestedCard({ event, navigation }: { event: any; navigation: any }) {
+  const isClosed = event.status === 'closed';
   return (
-    <TouchableOpacity activeOpacity={0.8} style={s.sugCard}>
-      <View style={[s.sugThumb, { backgroundColor: item.color }]}>
-        <Text style={s.sugDate}>{item.date}</Text>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      style={s.sugCard}
+      onPress={() => navigation.navigate(isClosed ? 'ClosedEvent' : 'EventDetail', { eventId: event.id })}
+    >
+      <View style={[s.sugThumb, { backgroundColor: '#1A1A2E' }]}>
+        <Image source={{ uri: event.coverImage }} style={{ ...StyleSheet.absoluteFillObject as any }} resizeMode="cover" />
+        <Text style={s.sugDate}>
+          {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+        </Text>
       </View>
       <View style={s.sugBody}>
-        <Text style={s.sugTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={s.sugArea} numberOfLines={1}>{item.area}</Text>
+        <Text style={s.sugTitle} numberOfLines={1}>{event.title}</Text>
+        <Text style={s.sugArea} numberOfLines={1}>{event.area}</Text>
         <View style={s.sugFooter}>
-          <Text style={s.sugFee}>{item.fee === 0 ? 'Free' : `₹${item.fee}`}</Text>
-          <View style={s.spotsPill}>
-            <Text style={s.spotsText}>{item.spots} left</Text>
-          </View>
+          <Text style={s.sugFee}>{event.fee === 0 ? 'Free' : `₹${event.fee}`}</Text>
+          {isClosed ? (
+            <View style={[s.spotsPill, { backgroundColor: 'rgba(255,90,90,0.1)', borderColor: 'rgba(255,90,90,0.3)' }]}>
+              <Text style={[s.spotsText, { color: '#FF5A5A' }]}>Closed</Text>
+            </View>
+          ) : (
+            <View style={s.spotsPill}>
+              <Text style={s.spotsText}>{event.spotsLeft} left</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -172,37 +167,37 @@ function SuggestedCard({ item }: { item: (typeof SUGGESTED)[0] }) {
 }
 
 const NAV_ITEMS = [
-  { icon: '⊞', label: 'Home',    active: true  },
-  { icon: '◎', label: 'Explore', active: false },
-  { icon: '★', label: 'Saved',   active: false },
-  { icon: '◯', label: 'Profile', active: false },
+  { icon: '⊞', label: 'Home',    screen: 'Home' },
+  { icon: '◎', label: 'Explore', screen: 'Discover' },
+  { icon: '★', label: 'Saved',   screen: 'Saved' },
+  { icon: '◯', label: 'Profile', screen: 'Profile' },
 ];
 
-function BottomNav() {
+function BottomNav({ navigation, active }: { navigation: any; active: string }) {
   return (
     <View style={s.navBar}>
       {NAV_ITEMS.slice(0, 2).map(item => (
-        <TouchableOpacity key={item.label} style={s.navItem} activeOpacity={0.7}>
-          <Text style={[s.navIcon, item.active && s.navActive]}>{item.icon}</Text>
-          <Text style={[s.navLabel, item.active && s.navActiveLbl]}>{item.label}</Text>
+        <TouchableOpacity key={item.label} style={s.navItem} onPress={() => navigation.navigate(item.screen)} activeOpacity={0.7}>
+          <Text style={[s.navIcon, active === item.screen && s.navActive]}>{item.icon}</Text>
+          <Text style={[s.navLabel, active === item.screen && s.navActiveLbl]}>{item.label}</Text>
         </TouchableOpacity>
       ))}
       <View style={s.navCenter}>
-        <TouchableOpacity style={s.createBtn} activeOpacity={0.8}>
+        <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate('Discover')} activeOpacity={0.8}>
           <Text style={s.createIcon}>＋</Text>
         </TouchableOpacity>
       </View>
       {NAV_ITEMS.slice(2).map(item => (
-        <TouchableOpacity key={item.label} style={s.navItem} activeOpacity={0.7}>
-          <Text style={[s.navIcon, item.active && s.navActive]}>{item.icon}</Text>
-          <Text style={[s.navLabel, item.active && s.navActiveLbl]}>{item.label}</Text>
+        <TouchableOpacity key={item.label} style={s.navItem} onPress={() => navigation.navigate(item.screen)} activeOpacity={0.7}>
+          <Text style={[s.navIcon, active === item.screen && s.navActive]}>{item.icon}</Text>
+          <Text style={[s.navLabel, active === item.screen && s.navActiveLbl]}>{item.label}</Text>
         </TouchableOpacity>
       ))}
     </View>
   );
 }
 
-export default function GuestDashboardScreen() {
+export default function GuestDashboardScreen({ navigation }: any) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={T.bg} />
@@ -217,34 +212,42 @@ export default function GuestDashboardScreen() {
               <Text style={s.notifIcon}>🔔</Text>
               <View style={s.notifBadge} />
             </TouchableOpacity>
-            <View style={s.avatar}>
-              <Text style={s.avatarText}>RK</Text>
-            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <Image source={{ uri: RAHUL.avatar }} style={s.avatarImg} />
+            </TouchableOpacity>
           </View>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
           <SectionLabel>Your next party</SectionLabel>
-          <TicketCard />
+          <TicketCard navigation={navigation} />
 
           <SectionLabel>Quick access</SectionLabel>
-          <QuickAccessGrid />
+          <QuickAccessGrid navigation={navigation} />
 
           <SectionLabel>Parties for you</SectionLabel>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.sugRow}
-          >
-            {SUGGESTED.map(item => (
-              <SuggestedCard key={item.id} item={item} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sugRow}>
+            {EVENTS.map(event => (
+              <SuggestedCard key={event.id} event={event} navigation={navigation} />
             ))}
           </ScrollView>
+
+          {/* Gallery teaser */}
+          <SectionLabel>Recent gallery</SectionLabel>
+          <TouchableOpacity
+            style={s.galleryTeaser}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Gallery', {})}
+          >
+            <Text style={s.galleryTitle}>📸  Event Photos</Text>
+            <Text style={s.gallerySub}>See what went down at the last party</Text>
+            <Text style={{ color: T.gold, fontSize: 13, fontWeight: '600', marginTop: 8 }}>View Gallery →</Text>
+          </TouchableOpacity>
 
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        <BottomNav />
+        <BottomNav navigation={navigation} active="Home" />
       </SafeAreaView>
     </View>
   );
@@ -255,117 +258,79 @@ const s = StyleSheet.create({
   safe: { flex: 1 },
 
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
   },
-  greeting:   { fontSize: 12, color: T.textMute, letterSpacing: 0.3 },
+  greeting: { fontSize: 12, color: T.textMute, letterSpacing: 0.3 },
   headerName: { fontSize: 22, fontWeight: '700', color: T.text, marginTop: 1 },
-  headerRight:{ flexDirection: 'row', alignItems: 'center', gap: 10 },
-  notifBtn:   { position: 'relative', padding: 2 },
-  notifIcon:  { fontSize: 22 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notifBtn: { position: 'relative', padding: 2 },
+  notifIcon: { fontSize: 22 },
   notifBadge: {
     position: 'absolute', top: 2, right: 2,
     width: 8, height: 8, borderRadius: 4,
     backgroundColor: T.gold, borderWidth: 1.5, borderColor: T.bg,
   },
-  avatar: {
+  avatarImg: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: T.gold,
-    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: T.gold,
+    backgroundColor: T.elevated,
   },
-  avatarText: { color: '#000', fontSize: 13, fontWeight: '700' },
 
   scroll: { paddingHorizontal: 20, paddingTop: 4 },
-
   sectionLabel: {
-    fontSize: 11, fontWeight: '600',
-    color: T.textMute, letterSpacing: 1.4,
-    marginBottom: 12, marginTop: 24,
+    fontSize: 11, fontWeight: '600', color: T.textMute,
+    letterSpacing: 1.4, marginBottom: 12, marginTop: 24,
   },
 
-  // ── Ticket ──
   ticket: {
-    backgroundColor: T.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: T.border,
-    overflow: 'hidden',
+    backgroundColor: T.card, borderRadius: 20,
+    borderWidth: 1, borderColor: T.border, overflow: 'hidden',
   },
   ticketTop: { flexDirection: 'row', padding: 20, paddingBottom: 16 },
   ticketMeta: { flex: 1 },
-  ticketEyebrow: {
-    fontSize: 10, fontWeight: '600',
-    color: T.gold, letterSpacing: 1.2, marginBottom: 5,
-  },
-  ticketTitle: {
-    fontSize: 22, fontWeight: '700',
-    color: T.text, lineHeight: 28, marginBottom: 8,
-  },
-  ticketRow:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  verifiedDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: T.green },
-  ticketHost:   { fontSize: 13, color: T.textSub },
-  ticketRight:  { alignItems: 'center', gap: 6, marginLeft: 12 },
-  saveBtn:      { padding: 2 },
-
+  ticketEyebrow: { fontSize: 10, fontWeight: '600', color: T.gold, letterSpacing: 1.2, marginBottom: 5 },
+  ticketTitle: { fontSize: 20, fontWeight: '700', color: T.text, lineHeight: 26, marginBottom: 8 },
+  ticketRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  verifiedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: T.green },
+  ticketHost: { fontSize: 13, color: T.textSub },
+  ticketRight: { alignItems: 'center', gap: 6, marginLeft: 12 },
+  saveBtn: { padding: 2 },
   qrBox: {
-    width: 64, height: 64, borderRadius: 10,
-    backgroundColor: T.elevated,
+    width: 64, height: 64, borderRadius: 10, backgroundColor: T.elevated,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: T.border,
   },
   qrInner: { gap: 4 },
-  qrRow:   { flexDirection: 'row', gap: 4 },
-  qrCell: {
-    width: 12, height: 12, borderRadius: 2,
-    backgroundColor: T.border,
-  },
+  qrRow: { flexDirection: 'row', gap: 4 },
+  qrCell: { width: 12, height: 12, borderRadius: 2, backgroundColor: T.border },
   qrCorner: { backgroundColor: T.gold, borderRadius: 3 },
-  qrLabel: {
-    fontSize: 8, fontWeight: '700',
-    color: T.textMute, letterSpacing: 1,
-  },
+  qrLabel: { fontSize: 8, fontWeight: '700', color: T.textMute, letterSpacing: 1 },
 
-  perfRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: -1, height: 20,
-  },
+  perfRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: -1, height: 20 },
   perfNubLeft: {
     width: 10, height: 20, borderRadius: 10,
-    backgroundColor: T.bg,
-    position: 'absolute', left: -10, zIndex: 2,
+    backgroundColor: T.bg, position: 'absolute', left: -10, zIndex: 2,
   },
   perfNubRight: {
     width: 10, height: 20, borderRadius: 10,
-    backgroundColor: T.bg,
-    position: 'absolute', right: -10, zIndex: 2,
+    backgroundColor: T.bg, position: 'absolute', right: -10, zIndex: 2,
   },
   perfLine: {
-    flex: 1, flexDirection: 'row',
-    justifyContent: 'space-between',
+    flex: 1, flexDirection: 'row', justifyContent: 'space-between',
     paddingHorizontal: 14, alignItems: 'center',
   },
   perfDot: { width: 5, height: 1, backgroundColor: T.border, borderRadius: 1 },
 
   ticketBottom: {
-    flexDirection: 'row',
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4,
+    flexDirection: 'row', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4,
   },
   ticketDetail: { flex: 1 },
-  ticketDetailDivider: {
-    width: 1, backgroundColor: T.border,
-    marginHorizontal: 12, marginVertical: 2,
-  },
-  detailLabel: {
-    fontSize: 9, fontWeight: '600',
-    color: T.textMute, letterSpacing: 1.2, marginBottom: 3,
-  },
+  ticketDetailDivider: { width: 1, backgroundColor: T.border, marginHorizontal: 12, marginVertical: 2 },
+  detailLabel: { fontSize: 9, fontWeight: '600', color: T.textMute, letterSpacing: 1.2, marginBottom: 3 },
   detailValue: { fontSize: 14, fontWeight: '700', color: T.text },
-  detailSub:   { fontSize: 11, color: T.textMute, marginTop: 2 },
-  goldText:    { color: T.gold },
+  detailSub: { fontSize: 11, color: T.textMute, marginTop: 2 },
+  goldText: { color: T.gold },
 
   ticketTags: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6,
@@ -377,98 +342,77 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: T.border,
   },
   tagText: { fontSize: 11, color: T.textSub, fontWeight: '500' },
-
   ticketCta: {
-    margin: 16, marginTop: 14,
-    backgroundColor: T.gold, borderRadius: 14,
+    margin: 16, marginTop: 14, backgroundColor: T.gold, borderRadius: 14,
     paddingVertical: 14, alignItems: 'center',
   },
-  ticketCtaText: { color: '#000', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
+  ticketCtaText: { color: '#000', fontSize: 15, fontWeight: '700' },
 
-  // ── Quick Access ──
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   qaCell: { width: (W - 52) / 2 },
   qaCard: {
-    backgroundColor: T.card,
-    borderRadius: 16, padding: 16, gap: 6,
+    backgroundColor: T.card, borderRadius: 16, padding: 16, gap: 6,
     borderWidth: 1, borderColor: T.border,
   },
-  qaIcon:  { fontSize: 26 },
+  qaIcon: { fontSize: 26 },
   qaLabel: { fontSize: 14, fontWeight: '600', color: T.text, marginTop: 4 },
-  qaSub:   { fontSize: 12, color: T.textMute },
+  qaSub: { fontSize: 12, color: T.textMute },
 
-  // ── Suggested ──
-  sugRow:  { paddingBottom: 4, gap: 12 },
+  sugRow: { paddingBottom: 4, gap: 12 },
   sugCard: {
-    width: 160,
-    backgroundColor: T.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1, borderColor: T.border,
+    width: 160, backgroundColor: T.card, borderRadius: 16,
+    overflow: 'hidden', borderWidth: 1, borderColor: T.border,
   },
-  sugThumb: {
-    height: 100,
-    alignItems: 'flex-end', justifyContent: 'flex-start', padding: 10,
-  },
+  sugThumb: { height: 100, alignItems: 'flex-end', justifyContent: 'flex-start', padding: 10 },
   sugDate: {
     fontSize: 13, fontWeight: '700',
     color: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 7, paddingVertical: 3,
-    borderRadius: 6, overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, overflow: 'hidden',
   },
-  sugBody:   { padding: 12, gap: 3 },
-  sugTitle:  { fontSize: 13, fontWeight: '700', color: T.text },
-  sugArea:   { fontSize: 11, color: T.textMute },
-  sugFooter: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginTop: 6,
-  },
-  sugFee:    { fontSize: 14, fontWeight: '700', color: T.gold },
+  sugBody: { padding: 12, gap: 3 },
+  sugTitle: { fontSize: 13, fontWeight: '700', color: T.text },
+  sugArea: { fontSize: 11, color: T.textMute },
+  sugFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  sugFee: { fontSize: 14, fontWeight: '700', color: T.gold },
   spotsPill: {
     backgroundColor: T.greenDim, borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: 'rgba(0,211,127,0.3)',
   },
   spotsText: { fontSize: 10, fontWeight: '600', color: T.green },
 
-  // ── Bottom nav ──
+  galleryTeaser: {
+    backgroundColor: T.card, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: T.border,
+  },
+  galleryTitle: { color: T.text, fontSize: 16, fontWeight: '700' },
+  gallerySub: { color: T.textSub, fontSize: 13, marginTop: 4 },
+
   navBar: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: T.card,
-    borderTopWidth: 1, borderTopColor: T.border,
+    backgroundColor: T.card, borderTopWidth: 1, borderTopColor: T.border,
     paddingBottom: Platform.OS === 'android' ? 8 : 24,
     paddingTop: 8, paddingHorizontal: 8,
-    ...Platform.select({
-      android: { elevation: 24 },
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-      },
+    ...(Platform.OS === 'android' ? { elevation: 24 } : {
+      shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.4, shadowRadius: 16,
     }),
   },
-  navItem:     { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 4 },
-  navIcon:     { fontSize: 20, color: T.textMute },
-  navLabel:    { fontSize: 10, color: T.textMute, fontWeight: '500' },
-  navActive:   { color: T.gold },
-  navActiveLbl:{ color: T.gold },
-  navCenter:   { width: 64, alignItems: 'center' },
+  navItem: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 4 },
+  navIcon: { fontSize: 20, color: T.textMute },
+  navLabel: { fontSize: 10, color: T.textMute, fontWeight: '500' },
+  navActive: { color: T.gold },
+  navActiveLbl: { color: T.gold },
+  navCenter: { width: 64, alignItems: 'center' },
   createBtn: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: T.gold,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: T.gold, alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
-    ...Platform.select({
-      android: { elevation: 8 },
-      ios: {
-        shadowColor: T.gold,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-      },
+    ...(Platform.OS === 'android' ? { elevation: 8 } : {
+      shadowColor: T.gold, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.5, shadowRadius: 10,
     }),
   },
   createIcon: { color: '#000', fontSize: 24, lineHeight: 28, fontWeight: '700' },
