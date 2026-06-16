@@ -167,47 +167,105 @@ export default function EventDetailScreen({ route, navigation }: any) {
             </View>
           </View>
 
-          {/* Host row */}
-          <TouchableOpacity
-            style={s.hostRow}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Chat', { hostId: event.host.id })}
-          >
-            <Image source={{ uri: event.host.avatar }} style={s.hostAvatar} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.hostedBy}>Hosted by</Text>
-              <Text style={s.hostName}>{event.host.name}</Text>
-              <StarRating rating={event.host.rating} />
-            </View>
-            <View style={s.chatChip}>
-              <Text style={s.chatChipText}>💬 Chat</Text>
-            </View>
-          </TouchableOpacity>
+          {/* ── CONFIRMED TICKET CARD ─────────────────────────────── */}
+          {rsvped ? (
+            <View style={s.ticketCard}>
+              {/* Gold glow accent */}
+              <View style={s.ticketGlow} />
 
-          {/* Countdown */}
-          {event.status === 'upcoming' && <CountdownTimer targetDate={event.date} />}
+              {/* Header row */}
+              <View style={s.ticketHeader}>
+                <View style={s.ticketConfirmedBadge}>
+                  <Text style={s.ticketConfirmedDot}>✓</Text>
+                  <Text style={s.ticketConfirmedLabel}>CONFIRMED</Text>
+                </View>
+                <Text style={s.ticketEventLabel}>YOUR TICKET</Text>
+              </View>
 
-          {/* Stats row */}
-          <View style={s.statsRow}>
-            <View style={s.stat}>
-              <Text style={s.statVal}>
-                {event.fee === 0 ? 'Free' : `₹${event.fee}`}
-              </Text>
-              <Text style={s.statLabel}>ENTRY</Text>
+              {/* Event name */}
+              <Text style={s.ticketEventName}>{event.title}</Text>
+              <Text style={s.ticketEventDate}>{dateStr} · {timeStr}</Text>
+              <Text style={s.ticketEventVenue}>📍 {event.area}, {event.city}</Text>
+
+              {/* Perforated divider */}
+              <View style={s.ticketPerf}>
+                <View style={s.perfNubL} />
+                <View style={s.perfDashes} />
+                <View style={s.perfNubR} />
+              </View>
+
+              {/* Booking ID — prominent */}
+              <View style={s.ticketIdRow}>
+                <View>
+                  <Text style={s.ticketIdLabel}>BOOKING ID</Text>
+                  <Text style={s.ticketIdValue}>#HP-4829</Text>
+                </View>
+                <View style={s.ticketMetaCol}>
+                  <Text style={s.ticketMetaLabel}>ENTRY</Text>
+                  <Text style={s.ticketMetaValue}>{event.fee === 0 ? 'Free' : `₹${event.fee}`}</Text>
+                </View>
+                <View style={s.ticketMetaCol}>
+                  <Text style={s.ticketMetaLabel}>AGE</Text>
+                  <Text style={s.ticketMetaValue}>{event.ageMin}–{event.ageMax}</Text>
+                </View>
+              </View>
+
+              {/* Host + chat */}
+              <TouchableOpacity
+                style={s.ticketHostRow}
+                onPress={() => navigation.navigate('Chat', { hostId: event.host.id })}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: event.host.avatar }} style={s.ticketHostAvatar} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.ticketHostLabel}>Hosted by</Text>
+                  <Text style={s.ticketHostName}>{event.host.name}</Text>
+                </View>
+                <View style={s.ticketChatChip}>
+                  <Text style={s.ticketChatText}>💬 Message Host</Text>
+                </View>
+              </TouchableOpacity>
             </View>
-            <View style={s.statDivider} />
-            <View style={s.stat}>
-              <Text style={[s.statVal, event.spotsLeft < 5 && { color: '#FF5A5A' }]}>
-                {event.spotsLeft === 0 ? 'FULL' : event.spotsLeft}
-              </Text>
-              <Text style={s.statLabel}>SPOTS LEFT</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.stat}>
-              <Text style={s.statVal}>{event.ageMin}–{event.ageMax}</Text>
-              <Text style={s.statLabel}>AGE GROUP</Text>
-            </View>
-          </View>
+          ) : (
+            <>
+              {/* Host row — unbooked view */}
+              <TouchableOpacity
+                style={s.hostRow}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('Chat', { hostId: event.host.id })}
+              >
+                <Image source={{ uri: event.host.avatar }} style={s.hostAvatar} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.hostedBy}>Hosted by</Text>
+                  <Text style={s.hostName}>{event.host.name}</Text>
+                  <StarRating rating={event.host.rating} />
+                </View>
+                <View style={s.chatChip}>
+                  <Text style={s.chatChipText}>💬 Chat</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Stats row */}
+              <View style={s.statsRow}>
+                <View style={s.stat}>
+                  <Text style={s.statVal}>{event.fee === 0 ? 'Free' : `₹${event.fee}`}</Text>
+                  <Text style={s.statLabel}>ENTRY</Text>
+                </View>
+                <View style={s.statDivider} />
+                <View style={s.stat}>
+                  <Text style={[s.statVal, event.spotsLeft < 5 && { color: '#FF5A5A' }]}>
+                    {event.spotsLeft === 0 ? 'FULL' : event.spotsLeft}
+                  </Text>
+                  <Text style={s.statLabel}>SPOTS LEFT</Text>
+                </View>
+                <View style={s.statDivider} />
+                <View style={s.stat}>
+                  <Text style={s.statVal}>{event.ageMin}–{event.ageMax}</Text>
+                  <Text style={s.statLabel}>AGE GROUP</Text>
+                </View>
+              </View>
+            </>
+          )}
 
           {/* Metro */}
           <View style={s.metroCard}>
@@ -284,30 +342,31 @@ export default function EventDetailScreen({ route, navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* Sticky CTA */}
+      {/* Sticky bottom bar */}
       <View style={s.cta}>
-        <View style={s.ctaInner}>
-          <View>
-            <Text style={s.ctaFee}>{event.fee === 0 ? 'Free Entry' : `₹${event.fee}`}</Text>
-            <Text style={[s.ctaSpots, isFull && { color: '#FF5A5A' }]}>
-              {rsvped
-                ? isFull ? '✓ On waitlist' : '✓ Confirmed'
-                : isFull ? 'Event full · Waitlist open' : `${event.spotsLeft} spots left`}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[
-              s.rsvpBtn,
-              rsvped ? s.rsvpBtnDone : isFull ? s.rsvpBtnWaitlist : s.rsvpBtnNow,
-            ]}
-            onPress={handleRSVP}
-            activeOpacity={rsvped ? 1 : 0.85}
-          >
-            <Text style={[s.rsvpText, isFull && !rsvped && s.rsvpTextWaitlist]}>
-              {rsvped ? '✓  RSVP\'d' : isFull ? 'Join Waitlist' : 'RSVP Now  →'}
-            </Text>
+        {rsvped ? (
+          <TouchableOpacity style={s.shareTicketBtn} onPress={handleShare} activeOpacity={0.85}>
+            <Text style={s.shareTicketText}>↑  Share Ticket</Text>
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={s.ctaInner}>
+            <View>
+              <Text style={s.ctaFee}>{event.fee === 0 ? 'Free Entry' : `₹${event.fee}`}</Text>
+              <Text style={[s.ctaSpots, isFull && { color: '#FF5A5A' }]}>
+                {isFull ? 'Event full · Waitlist open' : `${event.spotsLeft} spots left`}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[s.rsvpBtn, isFull ? s.rsvpBtnWaitlist : s.rsvpBtnNow]}
+              onPress={handleRSVP}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.rsvpText, isFull && s.rsvpTextWaitlist]}>
+                {isFull ? 'Join Waitlist' : 'RSVP Now  →'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -424,6 +483,119 @@ const s = StyleSheet.create({
   trackArtist: { color: T.textSub, fontSize: 12, marginTop: 2 },
   trackDur: { color: T.textMute, fontSize: 12 },
 
+  // ── Confirmed ticket card ──────────────────────────────────
+  ticketCard: {
+    backgroundColor: T.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.35)',
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  ticketGlow: {
+    position: 'absolute', top: -50, right: -50,
+    width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(201,168,76,0.07)',
+  },
+  ticketHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12,
+  },
+  ticketConfirmedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,211,127,0.12)', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: 'rgba(0,211,127,0.3)',
+  },
+  ticketConfirmedDot: { color: T.green, fontSize: 11, fontWeight: '800' },
+  ticketConfirmedLabel: { color: T.green, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  ticketEventLabel: { color: T.textMute, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+
+  ticketEventName: {
+    color: T.text, fontSize: 22, fontWeight: '800',
+    paddingHorizontal: 18, marginBottom: 4,
+  },
+  ticketEventDate: {
+    color: T.gold, fontSize: 13, fontWeight: '600',
+    paddingHorizontal: 18, marginBottom: 2,
+  },
+  ticketEventVenue: {
+    color: T.textSub, fontSize: 12,
+    paddingHorizontal: 18, marginBottom: 16,
+  },
+
+  // Perforated tear line
+  ticketPerf: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: -1,
+  },
+  perfNubL: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: T.bg,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
+    marginLeft: -9,
+  },
+  perfDashes: {
+    flex: 1, height: 1,
+    borderStyle: 'dashed', borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.25)',
+    marginHorizontal: 4,
+  },
+  perfNubR: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: T.bg,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
+    marginRight: -9,
+  },
+
+  // Booking ID row
+  ticketIdRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, gap: 0,
+  },
+  ticketIdLabel: {
+    color: T.textMute, fontSize: 9, fontWeight: '700',
+    letterSpacing: 1.5, marginBottom: 5,
+  },
+  ticketIdValue: {
+    color: T.gold, fontSize: 22, fontWeight: '900',
+    letterSpacing: 1,
+    flex: 1,
+  },
+  ticketMetaCol: {
+    alignItems: 'center', paddingLeft: 16,
+    borderLeftWidth: 1, borderLeftColor: T.border,
+    minWidth: 52,
+  },
+  ticketMetaLabel: {
+    color: T.textMute, fontSize: 9, fontWeight: '700',
+    letterSpacing: 1.2, marginBottom: 4,
+  },
+  ticketMetaValue: {
+    color: T.text, fontSize: 15, fontWeight: '800',
+  },
+
+  // Host row inside ticket
+  ticketHostRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: T.elevated,
+    paddingHorizontal: 18, paddingVertical: 14,
+    borderTopWidth: 1, borderTopColor: T.border,
+  },
+  ticketHostAvatar: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: T.card,
+  },
+  ticketHostLabel: { color: T.textMute, fontSize: 10, marginBottom: 2 },
+  ticketHostName: { color: T.text, fontSize: 13, fontWeight: '700' },
+  ticketChatChip: {
+    backgroundColor: T.goldDim, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)',
+  },
+  ticketChatText: { color: T.gold, fontSize: 12, fontWeight: '600' },
+
+  // ── Sticky bottom bar ──────────────────────────────────────
   cta: {
     backgroundColor: T.card, borderTopWidth: 1, borderTopColor: T.border,
     paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 16 : 34, paddingTop: 14,
@@ -431,12 +603,16 @@ const s = StyleSheet.create({
   ctaInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ctaFee: { color: T.text, fontSize: 20, fontWeight: '800' },
   ctaSpots: { color: T.textMute, fontSize: 12, marginTop: 2 },
+  shareTicketBtn: {
+    backgroundColor: T.gold, borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  shareTicketText: { color: '#000', fontSize: 15, fontWeight: '700' },
   rsvpBtn: {
     borderRadius: 14,
     paddingHorizontal: 28, paddingVertical: 14,
   },
   rsvpBtnNow: { backgroundColor: T.gold },
-  rsvpBtnDone: { backgroundColor: T.green },
   rsvpBtnWaitlist: {
     backgroundColor: 'transparent',
     borderWidth: 1, borderColor: T.border,
