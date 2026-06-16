@@ -92,7 +92,7 @@ function TicketCard({ navigation }: { navigation: any }) {
       <TouchableOpacity
         style={s.ticketCta}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+        onPress={() => navigation.navigate('EventDetail', { eventId: event.id, alreadyRsvped: true })}
       >
         <Text style={s.ticketCtaText}>View Full Details →</Text>
       </TouchableOpacity>

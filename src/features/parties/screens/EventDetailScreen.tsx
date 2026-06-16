@@ -102,8 +102,9 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function EventDetailScreen({ route, navigation }: any) {
   const eventId = route?.params?.eventId ?? 'e1';
+  const alreadyRsvped = route?.params?.alreadyRsvped ?? false;
   const event = EVENTS.find(e => e.id === eventId) ?? EVENTS[0];
-  const [rsvped, setRsvped] = useState(false);
+  const [rsvped, setRsvped] = useState(alreadyRsvped);
   const [activeTab, setActiveTab] = useState<'details' | 'playlist'>('details');
 
   const eventDate = new Date(event.date);
