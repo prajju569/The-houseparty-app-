@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EVENTS, RAHUL } from '../../../data/fakeData';
 import { SwipePartyCards } from '../../../shared/components/SwipePartyCards';
+import { SocialProof } from '../../../shared/components/SocialProof';
 
 const W = Dimensions.get('window').width;
 
@@ -222,6 +223,8 @@ export default function GuestDashboardScreen({ navigation }: any) {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
           <SectionLabel>Your next party</SectionLabel>
           <TicketCard navigation={navigation} />
+
+          <SocialProof />
 
           <SectionLabel>Quick access</SectionLabel>
           <QuickAccessGrid navigation={navigation} />
