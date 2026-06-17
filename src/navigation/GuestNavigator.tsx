@@ -8,13 +8,17 @@ import GalleryScreen from '../features/parties/screens/GalleryScreen';
 import ChatScreen from '../features/chat/screens/ChatScreen';
 import SavedScreen from '../features/saved/screens/SavedScreen';
 import ProfileScreen from '../features/profile/screens/ProfileScreen';
+import NearbyHostsScreen from '../features/parties/screens/NearbyHostsScreen';
+import EditProfileScreen from '../features/profile/screens/EditProfileScreen';
 
 export type GuestStackParamList = {
   Home: undefined;
   Discover: undefined;
   Saved: undefined;
   Profile: undefined;
-  EventDetail: { eventId: string };
+  EditProfile: undefined;
+  NearbyHosts: undefined;
+  EventDetail: { eventId: string; alreadyRsvped?: boolean };
   ClosedEvent: { eventId: string };
   Gallery: { eventId?: string };
   Chat: { hostId?: string };
@@ -35,9 +39,19 @@ export default function GuestNavigator() {
       <Stack.Screen name="Discover"    component={DiscoverScreen} />
       <Stack.Screen name="Saved"       component={SavedScreen} />
       <Stack.Screen name="Profile"     component={ProfileScreen} />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
       <Stack.Screen name="ClosedEvent" component={ClosedEventScreen} />
       <Stack.Screen name="Gallery"     component={GalleryScreen} />
+      <Stack.Screen
+        name="NearbyHosts"
+        component={NearbyHostsScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
       <Stack.Screen
         name="Chat"
         component={ChatScreen}

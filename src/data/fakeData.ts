@@ -62,13 +62,46 @@ export const HOSTS: Host[] = [
     verified: false,
     bio: 'EDM head. Warehouse raves & underground beats 🎛️',
   },
+  {
+    id: 'h_ananya',
+    name: 'Ananya V.',
+    avatar: 'https://i.pravatar.cc/150?img=23',
+    rating: 4.9,
+    reviewCount: 41,
+    eventsHosted: 22,
+    city: 'Mumbai',
+    verified: true,
+    bio: "Terrace parties & curated playlists. Powai's best kept secret 🌙",
+  },
+  {
+    id: 'h_rohit',
+    name: 'Rohit D.',
+    avatar: 'https://i.pravatar.cc/150?img=15',
+    rating: 4.3,
+    reviewCount: 9,
+    eventsHosted: 5,
+    city: 'Mumbai',
+    verified: false,
+    bio: 'New to hosting but big on vibes. Hip-hop & good food 🍕',
+  },
+  {
+    id: 'h_simran',
+    name: 'Simran T.',
+    avatar: 'https://i.pravatar.cc/150?img=9',
+    rating: 4.7,
+    reviewCount: 28,
+    eventsHosted: 14,
+    city: 'Delhi',
+    verified: true,
+    bio: 'Sufi nights & shisha in SDA. Come for the music, stay for the chai 🍵',
+  },
 ];
 
 export type Event = {
   id: string;
   title: string;
   host: Host;
-  date: string;       // ISO
+  date: string;
   area: string;
   city: string;
   coverImage: string;
@@ -117,9 +150,9 @@ export const EVENTS: Event[] = [
     date: '2026-06-20T21:00:00',
     area: 'Bandra West',
     city: 'Mumbai',
-    coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=800&q=80',
     photos: [
-      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80',
+      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=600&q=80',
       'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80',
       'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80',
       'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
@@ -160,9 +193,9 @@ export const EVENTS: Event[] = [
     date: '2026-06-22T19:00:00',
     area: 'Hauz Khas',
     city: 'Delhi',
-    coverImage: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=800&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1574271143515-5cddf8da19be?w=800&q=80',
     photos: [
-      'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&q=80',
+      'https://images.unsplash.com/photo-1574271143515-5cddf8da19be?w=600&q=80',
       'https://images.unsplash.com/photo-1574091607747-66f5ac9e3f42?w=600&q=80',
       'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80',
     ],
@@ -197,9 +230,9 @@ export const EVENTS: Event[] = [
     date: '2026-06-05T22:00:00',
     area: 'Indiranagar',
     city: 'Bangalore',
-    coverImage: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1571204829887-3b8d69e4094d?w=800&q=80',
     photos: [
-      'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
+      'https://images.unsplash.com/photo-1571204829887-3b8d69e4094d?w=600&q=80',
       'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=600&q=80',
       'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80',
       'https://images.unsplash.com/photo-1594982030943-8a3e17ff57cb?w=600&q=80',
@@ -253,6 +286,117 @@ export const EVENTS: Event[] = [
         date: 'Jun 7',
       },
     ],
+  },
+  {
+    id: 'e4',
+    title: 'Terrace Takeover',
+    host: HOSTS[3],
+    date: '2026-06-21T20:00:00',
+    area: 'Powai',
+    city: 'Mumbai',
+    coverImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=80',
+    photos: [
+      'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&q=80',
+      'https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?w=600&q=80',
+      'https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&q=80',
+    ],
+    fee: 0,
+    spotsTotal: 30,
+    spotsLeft: 11,
+    ageMin: 20,
+    ageMax: 35,
+    metro: 'Powai',
+    metroDistance: '900 m',
+    alcohol: true,
+    smoking: false,
+    pets: true,
+    food: true,
+    ac: false,
+    wifi: true,
+    playlist: [
+      { title: 'Kesariya', artist: 'Arijit Singh', duration: '4:28' },
+      { title: 'Apna Bana Le', artist: 'Arijit Singh', duration: '4:12' },
+      { title: 'Raataan Lambiyan', artist: 'Jubin Nautiyal', duration: '3:56' },
+    ],
+    tags: ['Chillout', 'Rooftop', '🍕 Food', '🐾 Pets OK'],
+    description: 'Late night terrace session in Powai with fairy lights, good food, and great company. Strictly curated guest list — 30 people max.',
+    status: 'upcoming',
+    averageRating: 0,
+    reviews: [],
+  },
+  {
+    id: 'e5',
+    title: 'Hip-Hop House Cypher',
+    host: HOSTS[4],
+    date: '2026-06-28T22:30:00',
+    area: 'Andheri West',
+    city: 'Mumbai',
+    coverImage: 'https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?w=800&q=80',
+    photos: [
+      'https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?w=600&q=80',
+      'https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&q=80',
+      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=600&q=80',
+    ],
+    fee: 299,
+    spotsTotal: 25,
+    spotsLeft: 7,
+    ageMin: 18,
+    ageMax: 28,
+    metro: 'Andheri',
+    metroDistance: '750 m',
+    alcohol: false,
+    smoking: false,
+    pets: false,
+    food: true,
+    ac: true,
+    wifi: true,
+    playlist: [
+      { title: 'HUMBLE.', artist: 'Kendrick Lamar', duration: '2:57' },
+      { title: "God's Plan", artist: 'Drake', duration: '3:19' },
+      { title: 'SICKO MODE', artist: 'Travis Scott', duration: '5:12' },
+    ],
+    tags: ['Hip-Hop', 'Cypher', '🎤 Open Mic', '🍕 Snacks'],
+    description: 'First hip-hop cypher house party in Andheri. Freestyle rounds, battle rap, and a fully loaded snack table. No alcohol — vibes only.',
+    status: 'upcoming',
+    averageRating: 0,
+    reviews: [],
+  },
+  {
+    id: 'e6',
+    title: 'Sufi Night & Shisha',
+    host: HOSTS[5],
+    date: '2026-06-19T21:00:00',
+    area: 'SDA',
+    city: 'Delhi',
+    coverImage: 'https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80',
+    photos: [
+      'https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&q=80',
+      'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&q=80',
+      'https://images.unsplash.com/photo-1574091607747-66f5ac9e3f42?w=600&q=80',
+    ],
+    fee: 199,
+    spotsTotal: 18,
+    spotsLeft: 3,
+    ageMin: 22,
+    ageMax: 45,
+    metro: 'IIT Delhi',
+    metroDistance: '600 m',
+    alcohol: false,
+    smoking: true,
+    pets: false,
+    food: true,
+    ac: false,
+    wifi: false,
+    playlist: [
+      { title: 'Tum Ho', artist: 'Mohit Chauhan', duration: '4:31' },
+      { title: 'Kun Faya Kun', artist: 'A.R. Rahman', duration: '7:52' },
+      { title: 'Iktara', artist: 'Amit Trivedi', duration: '5:04' },
+    ],
+    tags: ['Sufi', 'Shisha', '🍵 Chai & Qawwali', '🌿 Chill'],
+    description: 'An intimate Sufi night at home in SDA. Live qawwali playlist, shisha corner, and homemade biryani. Leave your shoes and your stress at the door.',
+    status: 'upcoming',
+    averageRating: 0,
+    reviews: [],
   },
 ];
 
@@ -345,6 +489,23 @@ export const INITIAL_MESSAGES: ChatMessage[] = [
   { id: 'm3', from: 'host', text: 'Yes, we have lounge seating + a dance floor. Very cozy setup!', time: '9:17 AM' },
   { id: 'm4', from: 'me', text: 'Perfect. Can I bring a friend as a plus one?', time: '9:20 AM' },
   { id: 'm5', from: 'host', text: 'Absolutely! Just make sure they RSVP separately since spots are limited 🎟️', time: '9:22 AM' },
+];
+
+// Nearby hosts for the radar screen
+export type NearbyHost = Host & {
+  distance: string;
+  distanceM: number;
+  angle: number;
+  nextEvent?: string;
+};
+
+export const NEARBY_HOSTS: NearbyHost[] = [
+  { ...HOSTS[0], distance: '320 m',  distanceM: 320,  angle: 45,  nextEvent: 'Retro Bollywood Night' },
+  { ...HOSTS[3], distance: '680 m',  distanceM: 680,  angle: 230, nextEvent: 'Terrace Takeover' },
+  { ...HOSTS[4], distance: '1.1 km', distanceM: 1100, angle: 140, nextEvent: 'Hip-Hop House Cypher' },
+  { ...HOSTS[1], distance: '1.8 km', distanceM: 1800, angle: 310, nextEvent: 'Sunset Jazz & Gin' },
+  { ...HOSTS[2], distance: '2.6 km', distanceM: 2600, angle: 75,  nextEvent: undefined },
+  { ...HOSTS[5], distance: '3.2 km', distanceM: 3200, angle: 195, nextEvent: 'Sufi Night & Shisha' },
 ];
 
 // Saved events (ids)

@@ -26,7 +26,7 @@ export function BottomNav({ navigation, active }: { navigation: any; active: str
         </TouchableOpacity>
       ))}
       <View style={s.navCenter}>
-        <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate('Discover')} activeOpacity={0.8}>
+        <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate('NearbyHosts')} activeOpacity={0.8}>
           <Text style={s.createIcon}>＋</Text>
         </TouchableOpacity>
       </View>
