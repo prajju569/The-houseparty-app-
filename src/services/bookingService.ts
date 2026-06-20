@@ -42,7 +42,10 @@ export type Booking = {
 };
 
 function generateRef(): string {
-  return `HP-${String(Math.floor(1000 + Math.random() * 9000))}`;
+  // 4 random bytes → 8 hex chars = 4 billion combinations (was only 9,000)
+  const arr = new Uint8Array(4);
+  crypto.getRandomValues(arr);
+  return `HP-${Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
 // ── Local (AsyncStorage) helpers ──────────────────────────────────────────────
@@ -210,11 +213,12 @@ export type CheckInResult = {
   error?: string;
 };
 
-export async function verifyAndCheckIn(bookingRef: string): Promise<CheckInResult> {
+export async function verifyAndCheckIn(bookingRef: string, eventId: string): Promise<CheckInResult> {
   const { data, error } = await supabase
     .from('bookings')
     .select('id, status, guest_count, checked_in, checked_in_at, profiles:user_id(display_name)')
     .eq('booking_ref', bookingRef)
+    .eq('event_id', eventId)
     .maybeSingle();
 
   if (error || !data) return { valid: false, error: 'Ticket not found' };

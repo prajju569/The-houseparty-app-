@@ -24,7 +24,7 @@ export default function ScanTicketScreen({ route, navigation }: Props) {
     if (!scanning || loading) return;
     setScanning(false);
     setLoading(true);
-    const res = await verifyAndCheckIn(data.trim());
+    const res = await verifyAndCheckIn(data.trim(), eventId);
     setResult(res);
     setLoading(false);
   }
