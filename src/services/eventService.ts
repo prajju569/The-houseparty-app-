@@ -27,21 +27,21 @@
  *   CREATE TABLE IF NOT EXISTS public.bookings (
  *     id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
  *     event_id    uuid REFERENCES public.events(id) ON DELETE CASCADE NOT NULL,
- *     user_id     uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+ *     guest_id    uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
  *     guest_count int DEFAULT 1 CHECK (guest_count > 0),
  *     status      text DEFAULT 'confirmed' CHECK (status IN ('pending','confirmed','cancelled')),
  *     booking_ref text UNIQUE NOT NULL,
  *     created_at  timestamptz DEFAULT now(),
- *     UNIQUE (event_id, user_id)
+ *     UNIQUE (event_id, guest_id)
  *   );
  *   ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
  *   CREATE POLICY "guests manage their bookings" ON public.bookings
- *     USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+ *     USING (auth.uid() = guest_id) WITH CHECK (auth.uid() = guest_id);
  *   CREATE POLICY "hosts view event bookings" ON public.bookings
  *     FOR SELECT USING (
  *       auth.uid() = (SELECT host_id FROM public.events WHERE id = event_id)
  *     );
- *   -- Canonical owner column is `user_id` (matches bookingService.ts + RSVP flow).
+ *   -- Canonical owner column is `guest_id` (verified against the live DB schema).
  */
 
 import { supabase } from './supabaseClient';
@@ -129,8 +129,8 @@ export async function updateEventStatus(eventId: string, status: Event['status']
 }
 
 // NOTE: Guest booking create/check/cancel live in bookingService.ts (the canonical
-// path used by the RSVP flow). Those use the `user_id` column. The old duplicates
-// here used a non-existent `guest_id` column and have been removed.
+// path used by the RSVP flow). The duplicate booking helpers that used to live
+// here have been removed; both paths now use the live `guest_id` column.
 
 // ── Guest: fetch nearby events via Haversine RPC ────────────────────────────
 export type NearbyEvent = Event & { distance_km: number };
@@ -169,7 +169,7 @@ export async function fetchNearbyEvents(
 // ── Host: fetch all bookings for an event (with guest profile info) ───────────
 export type EventBooking = {
   id: string;
-  user_id: string;
+  guest_id: string;
   guest_count: number;
   status: 'pending' | 'confirmed' | 'cancelled';
   booking_ref: string;
@@ -184,11 +184,25 @@ export type EventBooking = {
 export async function fetchEventBookings(eventId: string): Promise<EventBooking[]> {
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, profiles:user_id(username, display_name, avatar_url)')
+    .select('id, guest_id, guest_count, status, booking_ref, created_at')
     .eq('event_id', eventId)
     .order('created_at', { ascending: true });
   if (error || !data) return [];
-  return data as EventBooking[];
+
+  // No FK from bookings → profiles, so join guest profiles in a second query.
+  const guestIds = [...new Set(data.map((b: any) => b.guest_id).filter(Boolean))];
+  const profileMap: Record<string, EventBooking['profiles']> = {};
+  if (guestIds.length) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .in('id', guestIds);
+    (profs ?? []).forEach((p: any) => {
+      profileMap[p.id] = { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url };
+    });
+  }
+
+  return data.map((b: any) => ({ ...b, profiles: profileMap[b.guest_id] ?? null })) as EventBooking[];
 }
 
 // ── Host: approve or deny a booking ──────────────────────────────────────────

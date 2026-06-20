@@ -1,30 +1,9 @@
 /**
  * Booking service — Supabase when authenticated; AsyncStorage is an offline fallback only.
  *
- * Run this SQL in Supabase before using with real auth:
- *
- *   CREATE TABLE IF NOT EXISTS public.bookings (
- *     id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
- *     user_id     uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
- *     event_id    text NOT NULL,
- *     status      text DEFAULT 'confirmed'
- *                 CHECK (status IN ('confirmed', 'waitlist', 'cancelled')),
- *     booking_ref text UNIQUE NOT NULL,
- *     guest_count integer DEFAULT 1 CHECK (guest_count BETWEEN 1 AND 4),
- *     created_at  timestamptz DEFAULT now()
- *   );
- *
- *   ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
- *   CREATE POLICY "own bookings select" ON public.bookings
- *     FOR SELECT USING (auth.uid() = user_id);
- *   CREATE POLICY "own bookings insert" ON public.bookings
- *     FOR INSERT WITH CHECK (auth.uid() = user_id);
- *   CREATE POLICY "own bookings update" ON public.bookings
- *     FOR UPDATE USING (auth.uid() = user_id);
- *
- *   -- If you already have the table, add guest_count:
- *   ALTER TABLE public.bookings
- *     ADD COLUMN IF NOT EXISTS guest_count integer DEFAULT 1 CHECK (guest_count BETWEEN 1 AND 4);
+ * Live schema (verified against the DB): the owner column is `guest_id` (uuid),
+ * and `event_id` is a uuid FK to public.events(id). RLS keys guest ownership on
+ * `guest_id`; hosts read/update bookings for events they own (see the RLS script).
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,7 +65,7 @@ export async function createBooking(
     // Fix #22: handle sold-out conflict from Supabase
     const { data, error } = await supabase
       .from('bookings')
-      .insert({ user_id: userId, event_id: eventId, status, booking_ref: bookingRef, guest_count: guestCount })
+      .insert({ guest_id: userId, event_id: eventId, status, booking_ref: bookingRef, guest_count: guestCount })
       .select()
       .single();
 
@@ -119,7 +98,7 @@ export async function getUserBookings(
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
-      .eq('user_id', userId)
+      .eq('guest_id', userId)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
 
@@ -157,7 +136,7 @@ export async function cancelBooking(
       .from('bookings')
       .update({ status: 'cancelled' })
       .eq('id', bookingId)
-      .eq('user_id', userId);
+      .eq('guest_id', userId);
     return { error: error?.message ?? null };
   }
 
@@ -175,7 +154,7 @@ export async function mergeLocalBookingsToSupabase(userId: string): Promise<void
   const rows = local
     .filter(b => b.status !== 'cancelled')
     .map(b => ({
-      user_id: userId,
+      guest_id: userId,
       event_id: b.eventId,
       status: b.status,
       booking_ref: b.bookingRef,
@@ -196,7 +175,7 @@ export async function hasAttendedEvent(userId: string, eventId: string): Promise
   const { data } = await supabase
     .from('bookings')
     .select('id')
-    .eq('user_id', userId)
+    .eq('guest_id', userId)
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
     .maybeSingle();
@@ -216,20 +195,28 @@ export type CheckInResult = {
 export async function verifyAndCheckIn(bookingRef: string, eventId: string): Promise<CheckInResult> {
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, status, guest_count, checked_in, checked_in_at, profiles:user_id(display_name)')
+    .select('id, guest_id, status, guest_count, checked_in, checked_in_at')
     .eq('booking_ref', bookingRef)
     .eq('event_id', eventId)
     .maybeSingle();
 
   if (error || !data) return { valid: false, error: 'Ticket not found' };
   if (data.status === 'cancelled') return { valid: false, error: 'Ticket was cancelled' };
+
+  // No FK from bookings → profiles, so resolve the guest name in a second query.
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', data.guest_id)
+    .maybeSingle();
+  const guestName = prof?.display_name ?? 'Guest';
+
   if (data.checked_in) {
-    const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     return {
       valid: true,
       already_checked_in: true,
       checked_in_at: data.checked_in_at,
-      guest_name: (profile as any)?.display_name ?? 'Guest',
+      guest_name: guestName,
       guest_count: data.guest_count,
     };
   }
@@ -240,11 +227,10 @@ export async function verifyAndCheckIn(bookingRef: string, eventId: string): Pro
     .update({ checked_in: true, checked_in_at: new Date().toISOString() })
     .eq('id', data.id);
 
-  const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
   return {
     valid: true,
     already_checked_in: false,
-    guest_name: (profile as any)?.display_name ?? 'Guest',
+    guest_name: guestName,
     guest_count: data.guest_count,
     booking_id: data.id,
   };

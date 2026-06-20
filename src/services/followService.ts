@@ -99,13 +99,15 @@ export async function requestFollow(requesterId: string, targetId: string): Prom
   return !error;
 }
 
-export async function acceptFollowRequest(requestId: string, requesterId: string, targetId: string): Promise<boolean> {
-  const [res1, res2] = await Promise.all([
-    supabase.from('follow_requests').update({ status: 'accepted' }).eq('id', requestId),
-    supabase.from('follows').upsert({ follower_id: requesterId, following_id: targetId },
-      { onConflict: 'follower_id,following_id' }),
-  ]);
-  return !res1.error && !res2.error;
+// Accepting must mark the request accepted AND create the follows row where
+// follower_id = requester. The target (not the requester) performs this, so it
+// can't satisfy the `auth.uid() = follower_id` insert policy on follows. The
+// accept_follow_request() SECURITY DEFINER function does both atomically after
+// verifying the caller is the request target. (requesterId/targetId kept for
+// call-site compatibility; the function derives them from the request row.)
+export async function acceptFollowRequest(requestId: string, _requesterId?: string, _targetId?: string): Promise<boolean> {
+  const { error } = await supabase.rpc('accept_follow_request', { p_request_id: requestId });
+  return !error;
 }
 
 export async function declineFollowRequest(requestId: string): Promise<boolean> {
