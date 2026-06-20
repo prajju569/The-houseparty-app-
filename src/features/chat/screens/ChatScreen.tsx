@@ -73,7 +73,7 @@ export default function ChatScreen({ navigation, route }: any) {
   // Load other user's profile
   useEffect(() => {
     if (!otherId) return;
-    supabase.from('profiles').select('id, display_name, avatar_url').eq('id', otherId).single()
+    supabase.from('public_profiles').select('id, display_name, avatar_url').eq('id', otherId).single()
       .then(({ data }) => setOther(data as OtherProfile | null));
   }, [otherId]);
 

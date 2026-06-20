@@ -205,7 +205,7 @@ export async function verifyAndCheckIn(bookingRef: string, eventId: string): Pro
 
   // No FK from bookings → profiles, so resolve the guest name in a second query.
   const { data: prof } = await supabase
-    .from('profiles')
+    .from('public_profiles')
     .select('display_name')
     .eq('id', data.guest_id)
     .maybeSingle();

@@ -56,11 +56,22 @@ export type HostReview = {
 export async function fetchHostReviews(hostId: string): Promise<HostReview[]> {
   const { data } = await supabase
     .from('host_reviews')
-    .select('*, profiles(display_name, avatar_url)')
+    .select('id, host_id, reviewer_id, event_id, rating, comment, created_at')
     .eq('host_id', hostId)
     .order('created_at', { ascending: false })
     .limit(20);
-  return (data ?? []) as HostReview[];
+  if (!data) return [];
+  // No FK from host_reviews → profiles; resolve reviewer names via public_profiles.
+  const ids = [...new Set(data.map((r: any) => r.reviewer_id).filter(Boolean))];
+  const map: Record<string, HostReview['profiles']> = {};
+  if (ids.length) {
+    const { data: profs } = await supabase
+      .from('public_profiles')
+      .select('id, display_name, avatar_url')
+      .in('id', ids);
+    (profs ?? []).forEach((p: any) => { map[p.id] = { display_name: p.display_name, avatar_url: p.avatar_url }; });
+  }
+  return data.map((r: any) => ({ ...r, profiles: map[r.reviewer_id] ?? null })) as HostReview[];
 }
 
 export async function submitHostReview(
@@ -121,11 +132,22 @@ export async function declineFollowRequest(requestId: string): Promise<boolean> 
 export async function getPendingRequests(userId: string): Promise<FollowRequest[]> {
   const { data } = await supabase
     .from('follow_requests')
-    .select('*, profiles:requester_id(display_name, username, avatar_url)')
+    .select('id, requester_id, target_id, status, created_at')
     .eq('target_id', userId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
-  return (data ?? []) as FollowRequest[];
+  if (!data) return [];
+  // No FK from follow_requests → profiles; resolve requester info via public_profiles.
+  const ids = [...new Set(data.map((r: any) => r.requester_id).filter(Boolean))];
+  const map: Record<string, FollowRequest['profiles']> = {};
+  if (ids.length) {
+    const { data: profs } = await supabase
+      .from('public_profiles')
+      .select('id, display_name, username, avatar_url')
+      .in('id', ids);
+    (profs ?? []).forEach((p: any) => { map[p.id] = { display_name: p.display_name, username: p.username, avatar_url: p.avatar_url }; });
+  }
+  return data.map((r: any) => ({ ...r, profiles: map[r.requester_id] ?? null })) as FollowRequest[];
 }
 
 export async function hasPendingRequest(requesterId: string, targetId: string): Promise<boolean> {
@@ -162,7 +184,7 @@ export async function fetchNearbyHosts(lat: number, lng: number, radiusKm = 15):
   rpcData.forEach((r: any) => { distMap[r.id] = r.distance_km; });
 
   const { data: profiles } = await supabase
-    .from('profiles')
+    .from('public_profiles')
     .select('id, display_name, username, avatar_url, bio')
     .in('id', ids);
 

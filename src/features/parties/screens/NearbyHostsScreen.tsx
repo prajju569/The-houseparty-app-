@@ -28,7 +28,7 @@ export default function NearbyHostsScreen({ navigation }: any) {
       } else {
         // Fallback: all hosts (no GPS)
         const { data } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('id, display_name, username, avatar_url, bio')
           .eq('role', 'host')
           .limit(20);

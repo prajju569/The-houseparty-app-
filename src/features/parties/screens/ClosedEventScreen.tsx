@@ -82,7 +82,7 @@ export default function ClosedEventScreen({ route, navigation }: any) {
       setEvent(ev);
       setLoading(false);
       if (ev?.host_id) {
-        supabase.from('profiles').select('display_name, avatar_url').eq('id', ev.host_id).single()
+        supabase.from('public_profiles').select('display_name, avatar_url').eq('id', ev.host_id).single()
           .then(({ data }) => { if (data) setHostProfile(data as any); });
       }
     });

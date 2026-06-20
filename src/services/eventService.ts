@@ -194,7 +194,7 @@ export async function fetchEventBookings(eventId: string): Promise<EventBooking[
   const profileMap: Record<string, EventBooking['profiles']> = {};
   if (guestIds.length) {
     const { data: profs } = await supabase
-      .from('profiles')
+      .from('public_profiles')
       .select('id, username, display_name, avatar_url')
       .in('id', guestIds);
     (profs ?? []).forEach((p: any) => {

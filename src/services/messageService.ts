@@ -97,7 +97,7 @@ export async function fetchConversations(userId: string): Promise<ConversationPr
   // Fetch profiles for each conversation partner
   const ids = Array.from(convMap.keys());
   const { data: profiles } = await supabase
-    .from('profiles')
+    .from('public_profiles')
     .select('id, display_name, avatar_url')
     .in('id', ids);
 

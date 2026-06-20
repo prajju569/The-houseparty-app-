@@ -60,7 +60,7 @@ export default function HostProfileScreen({ route, navigation }: Props) {
 
   const load = useCallback(async () => {
     const [profileRes, followRes, followerRes, statsRes, eventsRes, reviewsRes] = await Promise.all([
-      supabase.from('profiles').select('id, display_name, username, avatar_url, bio').eq('id', hostId).single(),
+      supabase.from('public_profiles').select('id, display_name, username, avatar_url, bio').eq('id', hostId).single(),
       myId ? checkFollowing(myId, hostId) : Promise.resolve(false),
       getFollowerCount(hostId),
       getHostStats(hostId),

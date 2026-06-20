@@ -14,11 +14,25 @@ export type GalleryItem = {
 export async function fetchGalleryItems(eventId: string): Promise<GalleryItem[]> {
   const { data, error } = await supabase
     .from('gallery')
-    .select('*, profiles(display_name, avatar_url)')
+    .select('id, event_id, uploader_id, image_url, caption, like_count, created_at')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false });
   if (error || !data) return [];
-  return data as GalleryItem[];
+  return attachUploaderProfiles(data);
+}
+
+// No FK from gallery → profiles, so resolve uploader names via public_profiles.
+async function attachUploaderProfiles(rows: any[]): Promise<GalleryItem[]> {
+  const ids = [...new Set(rows.map(r => r.uploader_id).filter(Boolean))];
+  const map: Record<string, GalleryItem['profiles']> = {};
+  if (ids.length) {
+    const { data: profs } = await supabase
+      .from('public_profiles')
+      .select('id, display_name, avatar_url')
+      .in('id', ids);
+    (profs ?? []).forEach((p: any) => { map[p.id] = { display_name: p.display_name, avatar_url: p.avatar_url }; });
+  }
+  return rows.map(r => ({ ...r, profiles: map[r.uploader_id] ?? null })) as GalleryItem[];
 }
 
 export async function uploadGalleryPhoto(
@@ -45,10 +59,11 @@ export async function uploadGalleryPhoto(
         caption: caption?.trim() || null,
         like_count: 0,
       })
-      .select('*, profiles(display_name, avatar_url)')
+      .select('id, event_id, uploader_id, image_url, caption, like_count, created_at')
       .single();
-    if (error) return null;
-    return data as GalleryItem;
+    if (error || !data) return null;
+    const [item] = await attachUploaderProfiles([data]);
+    return item ?? null;
   } catch {
     return null;
   }

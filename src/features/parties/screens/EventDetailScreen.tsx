@@ -241,7 +241,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
       setEvent(ev);
       setLoadingEvent(false);
       if (ev?.host_id) {
-        supabase.from('profiles').select('display_name, avatar_url').eq('id', ev.host_id).single()
+        supabase.from('public_profiles').select('display_name, avatar_url').eq('id', ev.host_id).single()
           .then(({ data }) => { if (data) setHostProfile(data as any); });
       }
     });
