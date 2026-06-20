@@ -1,5 +1,5 @@
 /**
- * Booking service — Supabase when authenticated, AsyncStorage in bypass/dev mode.
+ * Booking service — Supabase when authenticated; AsyncStorage is an offline fallback only.
  *
  * Run this SQL in Supabase before using with real auth:
  *

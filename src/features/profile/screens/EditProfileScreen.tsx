@@ -6,12 +6,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../../../features/auth/authStore';
 import { useTheme } from '../../../theme/ThemeContext';
 import { updateProfile, uploadAvatar } from '../../../services/profileService';
-import { BYPASS_PROFILE_KEY } from '../../../hooks/useSession';
-import type { Profile } from '../../../shared/types';
 import { ALL_GENRES, ALL_VIBES } from '../../../services/vibeService';
 
 const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
@@ -106,19 +103,18 @@ export default function EditProfileScreen({ navigation }: any) {
       Alert.alert('Name required', 'Please enter your full name.');
       return;
     }
+    const userId = session?.user?.id;
+    if (!userId) {
+      Alert.alert('Sign in required', 'Please sign in again to update your profile.');
+      return;
+    }
     setSaving(true);
     try {
-      const userId = session?.user?.id;
-      // In bypass mode, keep showing the locally-picked URI; don't overwrite with null
       let finalAvatarUrl: string | null = profile?.avatar_url ?? localAvatar ?? null;
 
-      if (localAvatar && userId) {
-        // Real auth: upload to Supabase Storage
+      if (localAvatar) {
         const uploaded = await uploadAvatar(userId, localAvatar);
         if (uploaded) finalAvatarUrl = uploaded;
-      } else if (localAvatar && !userId) {
-        // Bypass mode: keep the local URI as-is (best-effort persistence)
-        finalAvatarUrl = localAvatar;
       }
 
       const artistsArr = topArtists.split(',').map(s => s.trim()).filter(Boolean);
@@ -136,30 +132,9 @@ export default function EditProfileScreen({ navigation }: any) {
         fav_playlist_url:   playlistUrl.trim() || null,
       };
 
-      if (userId) {
-        // Real Supabase save
-        const { error } = await updateProfile(userId, updates);
-        if (error) throw new Error(error);
-        setProfile(profile ? { ...profile, ...updates } : null);
-      } else {
-        // Bypass mode: persist to AsyncStorage so it survives restarts
-        const bypassProfile: Profile = {
-          id: 'bypass',
-          email: 'dev@bypass.local',
-          role: 'guest',
-          display_name:  updates.display_name ?? '',
-          username:      updates.username ?? '',
-          avatar_url:    updates.avatar_url ?? null,
-          gender:        updates.gender ?? null,
-          date_of_birth: updates.date_of_birth ?? null,
-          phone:         updates.phone ?? null,
-          bio:           updates.bio ?? null,
-          created_at:    profile?.created_at ?? new Date().toISOString(),
-          updated_at:    new Date().toISOString(),
-        };
-        await AsyncStorage.setItem(BYPASS_PROFILE_KEY, JSON.stringify(bypassProfile));
-        setProfile(bypassProfile);
-      }
+      const { error } = await updateProfile(userId, updates);
+      if (error) throw new Error(error);
+      setProfile(profile ? { ...profile, ...updates } : null);
 
       Alert.alert('Saved ✓', 'Your profile has been updated.', [
         { text: 'OK', onPress: () => navigation.goBack() },
