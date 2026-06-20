@@ -867,8 +867,13 @@ export default function EventDetailScreen({ route, navigation }: any) {
             /* Playlist tab */
             <View>
               {(() => {
-                const tracks: any[] = (event as any).playlist_tracks ?? [];
-                const playlistUrl: string | null = (event as any).playlist_url ?? null;
+                // playlist_tracks is free-form jsonb — defend against a non-array
+                // value or malformed entries so a bad row can't crash the tab.
+                const rawTracks = (event as any).playlist_tracks;
+                const tracks: any[] = (Array.isArray(rawTracks) ? rawTracks : [])
+                  .filter((t: any) => t && typeof t === 'object');
+                const playlistUrl: string | null =
+                  typeof (event as any).playlist_url === 'string' ? (event as any).playlist_url : null;
                 const isHost = userId === event.host_id;
                 if (tracks.length === 0) {
                   return (
@@ -908,10 +913,10 @@ export default function EventDetailScreen({ route, navigation }: any) {
                               <Text style={{ fontSize: 16 }}>🎵</Text>
                             </View>}
                         <View style={{ flex: 1 }}>
-                          <Text style={s.trackTitle} numberOfLines={1}>{track.title}</Text>
-                          <Text style={s.trackArtist} numberOfLines={1}>{track.artist}</Text>
+                          <Text style={s.trackTitle} numberOfLines={1}>{track.title ?? 'Untitled track'}</Text>
+                          <Text style={s.trackArtist} numberOfLines={1}>{track.artist ?? ''}</Text>
                         </View>
-                        {track.duration_s && (
+                        {typeof track.duration_s === 'number' && track.duration_s > 0 && (
                           <Text style={s.trackDur}>{`${Math.floor(track.duration_s / 60)}:${String(track.duration_s % 60).padStart(2, '0')}`}</Text>
                         )}
                       </View>

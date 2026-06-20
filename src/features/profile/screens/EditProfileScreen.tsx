@@ -10,6 +10,7 @@ import { useAuthStore } from '../../../features/auth/authStore';
 import { useTheme } from '../../../theme/ThemeContext';
 import { updateProfile, uploadAvatar } from '../../../services/profileService';
 import { ALL_GENRES, ALL_VIBES } from '../../../services/vibeService';
+import { validatePickedImage } from '../../../shared/utils/image';
 
 const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
 const GENDER_LABELS: Record<string, string> = {
@@ -66,6 +67,8 @@ export default function EditProfileScreen({ navigation }: any) {
       base64: false,
     });
     if (!result.canceled && result.assets[0]) {
+      const err = validatePickedImage(result.assets[0]);
+      if (err) { Alert.alert('Image not allowed', err); return; }
       setLocalAvatar(result.assets[0].uri);
       setAvatarUri(result.assets[0].uri);
     }
@@ -85,6 +88,8 @@ export default function EditProfileScreen({ navigation }: any) {
       base64: false,
     });
     if (!result.canceled && result.assets[0]) {
+      const err = validatePickedImage(result.assets[0]);
+      if (err) { Alert.alert('Image not allowed', err); return; }
       setLocalAvatar(result.assets[0].uri);
       setAvatarUri(result.assets[0].uri);
     }

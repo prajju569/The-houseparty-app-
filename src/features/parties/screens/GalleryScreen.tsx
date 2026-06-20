@@ -15,6 +15,7 @@ import {
 } from '../../../services/galleryService';
 import { hasAttendedEvent } from '../../../services/bookingService';
 import { fetchEvent } from '../../../services/eventService';
+import { validatePickedImage } from '../../../shared/utils/image';
 
 const W = Dimensions.get('window').width;
 const THUMB = (W - 44 - 8) / 2;
@@ -200,6 +201,8 @@ export default function GalleryScreen({ route, navigation }: any) {
       exif: false,
     });
     if (result.canceled || !result.assets[0]) return;
+    const imgErr = validatePickedImage(result.assets[0]);
+    if (imgErr) { Alert.alert('Image not allowed', imgErr); return; }
     setCaptionModal({ uri: result.assets[0].uri });
   }
 

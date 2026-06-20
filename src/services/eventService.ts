@@ -45,6 +45,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { blobTooLarge } from '../shared/utils/image';
 
 export type Event = {
   id: string;
@@ -222,6 +223,7 @@ export async function uploadEventCover(hostId: string, localUri: string): Promis
   try {
     const response = await fetch(localUri);
     const blob = await response.blob();
+    if (blobTooLarge(blob)) return null;
     const filePath = `${hostId}/${Date.now()}.jpg`;
     const { error } = await supabase.storage.from('event-covers').upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
     if (error) return null;

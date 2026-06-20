@@ -15,6 +15,7 @@
 
 import { supabase } from './supabaseClient';
 import type { Profile } from '../shared/types';
+import { blobTooLarge } from '../shared/utils/image';
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
@@ -44,6 +45,10 @@ export async function uploadAvatar(userId: string, localUri: string): Promise<st
   try {
     const response = await fetch(localUri);
     const blob = await response.blob();
+    if (blobTooLarge(blob)) {
+      console.warn('[profileService] uploadAvatar: image exceeds size limit');
+      return null;
+    }
 
     const filePath = `${userId}/avatar.jpg`;
     const { error } = await supabase.storage

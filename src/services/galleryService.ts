@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { blobTooLarge } from '../shared/utils/image';
 
 export type GalleryItem = {
   id: string;
@@ -44,6 +45,7 @@ export async function uploadGalleryPhoto(
   try {
     const response = await fetch(localUri);
     const blob = await response.blob();
+    if (blobTooLarge(blob)) return null;
     const filePath = `${eventId}/${uploaderId}/${Date.now()}.jpg`;
     const { error: uploadError } = await supabase.storage
       .from('gallery')

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Image, Platform, ActivityIndicator, ScrollView,
+  StatusBar, Image, Platform, ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { validatePickedImage } from '../../../../shared/utils/image';
 
 const MAX_PHOTOS = 5;
 
@@ -27,6 +28,8 @@ export default function CreateStep4Screen({ route, navigation }: Props) {
     });
     setPicking(null);
     if (!result.canceled && result.assets[0]) {
+      const imgErr = validatePickedImage(result.assets[0]);
+      if (imgErr) { Alert.alert('Image not allowed', imgErr); return; }
       setPhotoUris(prev => {
         const next = [...prev];
         next[index] = result.assets[0].uri;
