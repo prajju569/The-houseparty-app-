@@ -27,20 +27,21 @@
  *   CREATE TABLE IF NOT EXISTS public.bookings (
  *     id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
  *     event_id    uuid REFERENCES public.events(id) ON DELETE CASCADE NOT NULL,
- *     guest_id    uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+ *     user_id     uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
  *     guest_count int DEFAULT 1 CHECK (guest_count > 0),
  *     status      text DEFAULT 'confirmed' CHECK (status IN ('pending','confirmed','cancelled')),
  *     booking_ref text UNIQUE NOT NULL,
  *     created_at  timestamptz DEFAULT now(),
- *     UNIQUE (event_id, guest_id)
+ *     UNIQUE (event_id, user_id)
  *   );
  *   ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
  *   CREATE POLICY "guests manage their bookings" ON public.bookings
- *     USING (auth.uid() = guest_id) WITH CHECK (auth.uid() = guest_id);
+ *     USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
  *   CREATE POLICY "hosts view event bookings" ON public.bookings
  *     FOR SELECT USING (
  *       auth.uid() = (SELECT host_id FROM public.events WHERE id = event_id)
  *     );
+ *   -- Canonical owner column is `user_id` (matches bookingService.ts + RSVP flow).
  */
 
 import { supabase } from './supabaseClient';
@@ -127,36 +128,9 @@ export async function updateEventStatus(eventId: string, status: Event['status']
   return !error;
 }
 
-// ── Guest: create a booking ───────────────────────────────────────────────────
-export async function createBooking(eventId: string, guestId: string, guestCount = 1): Promise<{ bookingRef: string | null; error: string | null }> {
-  const ref = 'HP-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-  const { data, error } = await supabase
-    .from('bookings')
-    .insert({ event_id: eventId, guest_id: guestId, guest_count: guestCount, booking_ref: ref })
-    .select('booking_ref')
-    .single();
-  return { bookingRef: data?.booking_ref ?? null, error: error?.message ?? null };
-}
-
-// ── Guest: check existing booking for an event ───────────────────────────────
-export async function fetchMyBooking(eventId: string, guestId: string) {
-  const { data } = await supabase
-    .from('bookings')
-    .select('*')
-    .eq('event_id', eventId)
-    .eq('guest_id', guestId)
-    .single();
-  return data ?? null;
-}
-
-// ── Guest: cancel a booking ───────────────────────────────────────────────────
-export async function cancelBooking(bookingId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status: 'cancelled' })
-    .eq('id', bookingId);
-  return !error;
-}
+// NOTE: Guest booking create/check/cancel live in bookingService.ts (the canonical
+// path used by the RSVP flow). Those use the `user_id` column. The old duplicates
+// here used a non-existent `guest_id` column and have been removed.
 
 // ── Guest: fetch nearby events via Haversine RPC ────────────────────────────
 export type NearbyEvent = Event & { distance_km: number };
@@ -195,7 +169,7 @@ export async function fetchNearbyEvents(
 // ── Host: fetch all bookings for an event (with guest profile info) ───────────
 export type EventBooking = {
   id: string;
-  guest_id: string;
+  user_id: string;
   guest_count: number;
   status: 'pending' | 'confirmed' | 'cancelled';
   booking_ref: string;
@@ -210,7 +184,7 @@ export type EventBooking = {
 export async function fetchEventBookings(eventId: string): Promise<EventBooking[]> {
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, profiles(username, display_name, avatar_url)')
+    .select('*, profiles:user_id(username, display_name, avatar_url)')
     .eq('event_id', eventId)
     .order('created_at', { ascending: true });
   if (error || !data) return [];
