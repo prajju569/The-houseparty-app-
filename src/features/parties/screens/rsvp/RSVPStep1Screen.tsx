@@ -138,7 +138,7 @@ export default function RSVPStep1Screen({ route, navigation }: any) {
 
         <TouchableOpacity
           style={s.cta}
-          onPress={() => navigation.navigate('RSVPStep2', { eventId, guestCount, entryFee: event.entry_fee })}
+          onPress={() => navigation.navigate('RSVPStep2', { eventId, guestCount, entryFee: event.entry_fee, minAge: event.min_age ?? null })}
           activeOpacity={0.88}
         >
           <Text style={s.ctaText}>Continue →</Text>

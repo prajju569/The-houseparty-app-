@@ -25,6 +25,7 @@ export default function CreateStep2Screen({ route, navigation }: Props) {
   const [picked, setPicked] = useState<Date | null>(null);
   const [capacity, setCapacity] = useState(20);
   const [fee, setFee] = useState(0);
+  const [minAge, setMinAge] = useState<number | null>(null);
 
   function onPickerChange(event: DateTimePickerEvent, selected?: Date) {
     if (Platform.OS === 'android') {
@@ -76,6 +77,7 @@ export default function CreateStep2Screen({ route, navigation }: Props) {
       date: iso,
       capacity,
       entry_fee: fee,
+      min_age: minAge,
     });
   }
 
@@ -172,6 +174,28 @@ export default function CreateStep2Screen({ route, navigation }: Props) {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Age restriction */}
+          <Text style={[s.label, { marginTop: 20 }]}>Age restriction</Text>
+          <View style={s.feeRow}>
+            {[{ label: 'All ages', v: null }, { label: '18+', v: 18 }, { label: '21+', v: 21 }].map(opt => (
+              <TouchableOpacity
+                key={opt.label}
+                style={[s.feeChip, minAge === opt.v && s.feeChipActive]}
+                onPress={() => setMinAge(opt.v)}
+                activeOpacity={0.75}
+              >
+                <Text style={[s.feeChipText, minAge === opt.v && s.feeChipTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {minAge != null && (
+            <Text style={{ color: 'rgba(232,227,216,0.45)', fontSize: 11, marginTop: 8, lineHeight: 16 }}>
+              Guests under {minAge} can't RSVP — we check the date of birth on their profile.
+            </Text>
+          )}
 
           <View style={{ height: 32 }} />
 

@@ -7,22 +7,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../../theme/ThemeContext';
 import { useAuthStore } from '../../../auth/authStore';
 import { createBooking } from '../../../../services/bookingService';
+import { computeAge } from '../../../../shared/utils/age';
 import StepIndicator from './StepIndicator';
 
 export default function RSVPStep2Screen({ route, navigation }: any) {
   const { T } = useTheme();
-  const { eventId, guestCount, entryFee = 0 } = route.params ?? {};
+  const { eventId, guestCount, entryFee = 0, minAge = null } = route.params ?? {};
   const { profile, session } = useAuthStore();
   const userId = session?.user?.id ?? null;
 
   const [name, setName]           = useState(profile?.display_name ?? '');
-  const [ageConsent, setAge]      = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   const isFree        = entryFee === 0;
-  const needsAge      = false; // age gate TBD — not yet in DB schema
+  // Real age gate: compare the user's profile date_of_birth against the event's
+  // min_age. No DOB on file → can't verify → blocked for age-restricted events.
+  const ageRequired   = typeof minAge === 'number' && minAge > 0;
+  const userAge       = computeAge(profile?.date_of_birth);
+  const meetsAge      = !ageRequired || (userAge !== null && userAge >= minAge);
+  const ageBlockMsg   = !ageRequired || meetsAge ? null
+    : userAge === null
+      ? 'Add your date of birth in your profile to RSVP to age-restricted events.'
+      : `This event is ${minAge}+. Your profile says you're ${userAge}.`;
   const totalSteps    = isFree ? 3 : 5;
-  const canContinue   = name.trim().length > 0 && (!needsAge || ageConsent);
+  const canContinue   = name.trim().length > 0 && meetsAge;
 
   const s = StyleSheet.create({
     root:    { flex: 1, backgroundColor: T.bg },
@@ -47,6 +55,7 @@ export default function RSVPStep2Screen({ route, navigation }: any) {
       backgroundColor: T.card, borderRadius: 16, padding: 16,
       borderWidth: 1, borderColor: T.border, marginBottom: 24,
     },
+    checkRowBlocked: { borderColor: '#FF5A5A', backgroundColor: 'rgba(255,90,90,0.08)' },
     checkbox: {
       width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: T.border,
       alignItems: 'center', justifyContent: 'center',
@@ -115,15 +124,15 @@ export default function RSVPStep2Screen({ route, navigation }: any) {
           autoCapitalize="words"
         />
 
-        {needsAge && (
-          <TouchableOpacity style={s.checkRow} onPress={() => setAge(v => !v)} activeOpacity={0.8}>
-            <View style={[s.checkbox, ageConsent && s.checkboxOn]}>
-              {ageConsent && <Text style={s.checkmark}>✓</Text>}
-            </View>
+        {ageRequired && (
+          <View style={[s.checkRow, !meetsAge && s.checkRowBlocked]}>
+            <Text style={{ fontSize: 18 }}>{meetsAge ? '✅' : '🔞'}</Text>
             <Text style={s.checkLabel}>
-              I confirm I'm 18+ years old. Hosts may ask for ID at the door.
+              {meetsAge
+                ? `You meet the ${minAge}+ requirement. Hosts may still ask for ID at the door.`
+                : ageBlockMsg}
             </Text>
-          </TouchableOpacity>
+          </View>
         )}
 
         <Text style={s.finePrint}>

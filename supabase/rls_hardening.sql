@@ -123,3 +123,8 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
   END IF;
 END $$;
+
+-- ── EVENTS: minimum age (age gate) ──────────────────────────────────────────
+-- Optional per-event age restriction. NULL = no restriction. The RSVP flow
+-- blocks a guest whose profile date_of_birth makes them younger than this.
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS min_age int;

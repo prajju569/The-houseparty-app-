@@ -59,6 +59,7 @@ export type Event = {
   area?: string | null;
   capacity: number;
   entry_fee: number;
+  min_age?: number | null;
   cover_image?: string | null;
   lat?: number | null;
   lng?: number | null;

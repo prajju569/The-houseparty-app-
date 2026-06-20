@@ -10,6 +10,7 @@ import ViewShot, { ViewShotRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../../../features/auth/authStore';
 import { createBooking, checkBooking, cancelBooking } from '../../../services/bookingService';
+import { computeAge } from '../../../shared/utils/age';
 import { cancelEventReminders } from '../../../services/notificationService';
 import { fetchEvent, type Event as SupaEvent } from '../../../services/eventService';
 import { supabase } from '../../../services/supabaseClient';
@@ -210,7 +211,7 @@ function WhoIsGoingBar({ event }: { event: SupaEvent }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function EventDetailScreen({ route, navigation }: any) {
   const { T } = useTheme();
-  const { session } = useAuthStore();
+  const { session, profile } = useAuthStore();
   const userId = session?.user?.id ?? null;
 
   const eventId       = route?.params?.eventId;
@@ -545,6 +546,20 @@ export default function EventDetailScreen({ route, navigation }: any) {
 
   function handleRSVP() {
     if (rsvped) return;
+    // Age gate — covers every booking path below (waitlist, invite request, and
+    // the full RSVP flow, which also re-checks in RSVPStep2 as defense in depth).
+    if (event && typeof event.min_age === 'number' && event.min_age > 0) {
+      const age = computeAge(profile?.date_of_birth);
+      if (age === null || age < event.min_age) {
+        Alert.alert(
+          `${event.min_age}+ event`,
+          age === null
+            ? 'Add your date of birth in your profile to RSVP to age-restricted events.'
+            : `This event is ${event.min_age}+. Your profile says you're ${age}.`,
+        );
+        return;
+      }
+    }
     if (isInviteOnly) {
       Alert.alert(
         'Request to RSVP',
