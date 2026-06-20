@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { navigationRef } from './src/navigation/navigationRef';
+import ErrorBoundary from './src/shared/components/ErrorBoundary';
 import { supabase } from './src/services/supabaseClient';
 import { useAuthStore } from './src/features/auth/authStore';
 import * as Location from 'expo-location';
@@ -89,12 +90,14 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#090909' }}>
-      <ThemeProvider>
-        <NavigationContainer ref={navigationRef}>
-          <StatusBar style="light" />
-          <AppNavigator />
-        </NavigationContainer>
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <NavigationContainer ref={navigationRef}>
+            <StatusBar style="light" />
+            <AppNavigator />
+          </NavigationContainer>
+        </ThemeProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }
