@@ -107,3 +107,19 @@ CREATE OR REPLACE VIEW public.public_profiles AS
 ALTER VIEW public.public_profiles SET (security_invoker = false);
 REVOKE ALL ON public.public_profiles FROM anon, public;
 GRANT SELECT ON public.public_profiles TO authenticated;
+
+-- ── REALTIME: live message delivery ─────────────────────────────────────────
+-- ChatScreen subscribes to INSERTs on public.messages. Supabase does not add new
+-- tables to the realtime publication automatically, so live chat won't fire
+-- until messages is a member. Guarded so this is safe to re-run.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+  END IF;
+END $$;
