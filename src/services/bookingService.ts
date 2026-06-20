@@ -102,7 +102,10 @@ export async function getUserBookings(
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
 
-    if (error || !data) return [];
+    // Throw on a real error (e.g. offline) so callers can fall back to the
+    // offline cache. A genuinely-empty result returns [] below.
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map(d => ({
       id: d.id,
       eventId: d.event_id,
@@ -121,8 +124,14 @@ export async function checkBooking(
   userId: string | null | undefined,
   eventId: string
 ): Promise<Booking | null> {
-  const all = await getUserBookings(userId);
-  return all.find(b => b.eventId === eventId) ?? null;
+  // Resilient: getUserBookings now throws on a network error; callers here
+  // (idempotency check, EventDetail) just want null when we can't tell.
+  try {
+    const all = await getUserBookings(userId);
+    return all.find(b => b.eventId === eventId) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // Fix #6: Deadline enforcement lives in the UI (GuestDashboardScreen checks hours remaining).
