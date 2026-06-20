@@ -44,6 +44,39 @@ export async function fetchPlaylistMeta(url: string): Promise<PlaylistMeta | nul
   }
 }
 
+/**
+ * Import a public Spotify playlist's full track list via the spotify-playlist
+ * edge function (the Client Secret lives server-side, never in the app).
+ */
+export async function importSpotifyPlaylist(
+  url: string,
+): Promise<{ ok: true; meta: PlaylistMeta; tracks: PlaylistTrack[] } | { ok: false; error: string }> {
+  const { data, error } = await supabase.functions.invoke('spotify-playlist', { body: { url } });
+
+  if (error) {
+    // Try to surface the function's JSON error body (e.g. 403 Premium gate).
+    let msg = error.message ?? 'Could not reach the Spotify importer.';
+    try {
+      const ctx = (error as any).context;
+      const body = ctx && typeof ctx.json === 'function' ? await ctx.json() : null;
+      if (body?.error) msg = body.error;
+    } catch { /* keep generic message */ }
+    return { ok: false, error: msg };
+  }
+  if (!data || data.error) return { ok: false, error: data?.error ?? 'Import failed.' };
+
+  return {
+    ok: true,
+    meta: {
+      platform: 'spotify',
+      title: data.title ?? 'Spotify playlist',
+      thumbnail: data.thumbnail ?? null,
+      track_count: data.track_count ?? (data.tracks?.length ?? null),
+    },
+    tracks: (data.tracks ?? []) as PlaylistTrack[],
+  };
+}
+
 export async function savePlaylist(
   eventId: string,
   playlistUrl: string,

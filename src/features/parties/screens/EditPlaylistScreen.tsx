@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import {
-  fetchPlaylistMeta, savePlaylist, updateTrackList,
+  fetchPlaylistMeta, importSpotifyPlaylist, detectPlatform, savePlaylist, updateTrackList,
   type PlaylistTrack,
 } from '../../../services/playlistService';
 
@@ -25,10 +25,25 @@ export default function EditPlaylistScreen({ route, navigation }: Props) {
   async function onUrlBlur() {
     if (!url.trim() || url === initialUrl) return;
     setFetching(true);
+
+    // Spotify: auto-import the full track list via the edge function.
+    if (detectPlatform(url.trim()) === 'spotify') {
+      const res = await importSpotifyPlaylist(url.trim());
+      setFetching(false);
+      if (res.ok) {
+        setTracks(res.tracks);
+        Alert.alert(`✅ ${res.meta.title}`, `Imported ${res.tracks.length} track${res.tracks.length === 1 ? '' : 's'} from Spotify.`);
+      } else {
+        Alert.alert('Spotify import failed', `${res.error}\n\nYou can still add tracks manually below.`);
+      }
+      return;
+    }
+
+    // YouTube / other: oEmbed gives title + thumbnail only (no track list).
     const meta = await fetchPlaylistMeta(url.trim());
     setFetching(false);
     if (meta) {
-      Alert.alert(`📋 ${meta.title}`, `Platform: ${meta.platform}\n\nNote: track-level data requires the Spotify/YouTube API. Tracks can be added manually below.`);
+      Alert.alert(`📋 ${meta.title}`, `Platform: ${meta.platform}\n\nTrack auto-import is only available for Spotify. Add ${meta.platform} tracks manually below.`);
     } else {
       Alert.alert('Could not fetch playlist', 'Check the link and try again.');
     }
