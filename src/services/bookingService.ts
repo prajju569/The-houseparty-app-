@@ -189,6 +189,63 @@ export async function mergeLocalBookingsToSupabase(userId: string): Promise<void
   await AsyncStorage.removeItem(LOCAL_KEY);
 }
 
+export async function hasAttendedEvent(userId: string, eventId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+    .maybeSingle();
+  return !!data;
+}
+
+export type CheckInResult = {
+  valid: boolean;
+  guest_name?: string;
+  guest_count?: number;
+  already_checked_in?: boolean;
+  checked_in_at?: string;
+  booking_id?: string;
+  error?: string;
+};
+
+export async function verifyAndCheckIn(bookingRef: string): Promise<CheckInResult> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id, status, guest_count, checked_in, checked_in_at, profiles:user_id(display_name)')
+    .eq('booking_ref', bookingRef)
+    .maybeSingle();
+
+  if (error || !data) return { valid: false, error: 'Ticket not found' };
+  if (data.status === 'cancelled') return { valid: false, error: 'Ticket was cancelled' };
+  if (data.checked_in) {
+    const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+    return {
+      valid: true,
+      already_checked_in: true,
+      checked_in_at: data.checked_in_at,
+      guest_name: (profile as any)?.display_name ?? 'Guest',
+      guest_count: data.guest_count,
+    };
+  }
+
+  // Mark as checked in
+  await supabase
+    .from('bookings')
+    .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+    .eq('id', data.id);
+
+  const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+  return {
+    valid: true,
+    already_checked_in: false,
+    guest_name: (profile as any)?.display_name ?? 'Guest',
+    guest_count: data.guest_count,
+    booking_id: data.id,
+  };
+}
+
 // Cache bookings locally so ticket is viewable offline (Fix #16)
 export async function cacheBookingsOffline(bookings: Booking[]): Promise<void> {
   await AsyncStorage.setItem('@hp_bookings_cache', JSON.stringify(bookings));

@@ -11,8 +11,8 @@ import { useAuthStore } from '../../../features/auth/authStore';
 import { useTheme } from '../../../theme/ThemeContext';
 import { updateProfile, uploadAvatar } from '../../../services/profileService';
 import { BYPASS_PROFILE_KEY } from '../../../hooks/useSession';
-import { RAHUL } from '../../../data/fakeData';
 import type { Profile } from '../../../shared/types';
+import { ALL_GENRES, ALL_VIBES } from '../../../services/vibeService';
 
 const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
 const GENDER_LABELS: Record<string, string> = {
@@ -24,17 +24,27 @@ export default function EditProfileScreen({ navigation }: any) {
   const { T, isDark } = useTheme();
   const { profile, setProfile, session } = useAuthStore();
 
-  // Form state — seed from real profile, fall back to RAHUL fake data
-  const [displayName, setDisplayName] = useState(profile?.display_name ?? RAHUL.name);
-  const [username,    setUsername]    = useState(profile?.username    ?? 'rahulkapoor');
+  const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
+  const [username,    setUsername]    = useState(profile?.username    ?? '');
   const [phone,       setPhone]       = useState(profile?.phone       ?? '');
-  const [bio,         setBio]         = useState(profile?.bio         ?? RAHUL.bio);
+  const [bio,         setBio]         = useState(profile?.bio         ?? '');
   const [gender,      setGender]      = useState<string>(profile?.gender ?? '');
   const [dob,         setDob]         = useState(profile?.date_of_birth ?? '');
-  const [avatarUri,   setAvatarUri]   = useState(profile?.avatar_url ?? RAHUL.avatar);
+  const [avatarUri,   setAvatarUri]   = useState(profile?.avatar_url ?? '');
   const [localAvatar, setLocalAvatar] = useState<string | null>(null); // picked but not yet uploaded
   const [saving, setSaving]           = useState(false);
   const [genderModal, setGenderModal] = useState(false);
+
+  // Music & vibe
+  const [selectedGenres,  setSelectedGenres]  = useState<string[]>(profile?.top_genres  ?? []);
+  const [selectedVibes,   setSelectedVibes]   = useState<string[]>(profile?.vibe_tags   ?? []);
+  const [topArtists,      setTopArtists]      = useState(profile?.top_artists?.join(', ') ?? '');
+  const [playlistUrl,     setPlaylistUrl]     = useState(profile?.fav_playlist_url ?? '');
+
+  function toggleChip<T extends string>(list: T[], item: T, setList: (v: T[]) => void) {
+    if (list.includes(item)) setList(list.filter(x => x !== item));
+    else if (list.length < 5) setList([...list, item]);
+  }
 
   const s = makeStyles(T);
 
@@ -111,14 +121,19 @@ export default function EditProfileScreen({ navigation }: any) {
         finalAvatarUrl = localAvatar;
       }
 
+      const artistsArr = topArtists.split(',').map(s => s.trim()).filter(Boolean);
       const updates: Parameters<typeof updateProfile>[1] = {
-        display_name:  displayName.trim(),
-        username:      username.trim().replace(/^@/, ''),
-        phone:         phone.trim() || null,
-        bio:           bio.trim() || null,
-        gender:        (gender as any) || null,
-        date_of_birth: dob || null,
-        avatar_url:    finalAvatarUrl,
+        display_name:       displayName.trim(),
+        username:           username.trim().replace(/^@/, ''),
+        phone:              phone.trim() || null,
+        bio:                bio.trim() || null,
+        gender:             (gender as any) || null,
+        date_of_birth:      dob || null,
+        avatar_url:         finalAvatarUrl,
+        top_genres:         selectedGenres.length > 0 ? selectedGenres : null,
+        vibe_tags:          selectedVibes.length > 0 ? selectedVibes : null,
+        top_artists:        artistsArr.length > 0 ? artistsArr : null,
+        fav_playlist_url:   playlistUrl.trim() || null,
       };
 
       if (userId) {
@@ -132,8 +147,8 @@ export default function EditProfileScreen({ navigation }: any) {
           id: 'bypass',
           email: 'dev@bypass.local',
           role: 'guest',
-          display_name:  updates.display_name ?? null,
-          username:      updates.username ?? null,
+          display_name:  updates.display_name ?? '',
+          username:      updates.username ?? '',
           avatar_url:    updates.avatar_url ?? null,
           gender:        updates.gender ?? null,
           date_of_birth: updates.date_of_birth ?? null,
@@ -298,6 +313,76 @@ export default function EditProfileScreen({ navigation }: any) {
 
             </View>
 
+            {/* ── Music & Vibe section ── */}
+            <View style={s.musicSection}>
+              <Text style={[s.musicSectionTitle, { color: T.text }]}>🎵 Music & Vibe</Text>
+              <Text style={[s.musicSectionSub, { color: T.textMute }]}>Pick up to 5 — powers your vibe match score</Text>
+
+              {/* Genre chips */}
+              <Text style={[s.chipGroupLabel, { color: T.textMute }]}>GENRES</Text>
+              <View style={s.chipWrap}>
+                {ALL_GENRES.map(g => {
+                  const on = selectedGenres.includes(g);
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      style={[s.chip, { backgroundColor: on ? T.accent : T.card, borderColor: on ? T.accent : T.border }]}
+                      onPress={() => toggleChip(selectedGenres, g, setSelectedGenres)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[s.chipText, { color: on ? '#090909' : T.textMute }]}>{g}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Vibe chips */}
+              <Text style={[s.chipGroupLabel, { color: T.textMute }]}>YOUR VIBE</Text>
+              <View style={s.chipWrap}>
+                {ALL_VIBES.map(v => {
+                  const on = selectedVibes.includes(v);
+                  return (
+                    <TouchableOpacity
+                      key={v}
+                      style={[s.chip, { backgroundColor: on ? T.accent : T.card, borderColor: on ? T.accent : T.border }]}
+                      onPress={() => toggleChip(selectedVibes, v, setSelectedVibes)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[s.chipText, { color: on ? '#090909' : T.textMute }]}>{v}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Top artists */}
+              <Text style={[s.chipGroupLabel, { color: T.textMute }]}>TOP ARTISTS (comma-separated)</Text>
+              <View style={[s.fieldCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                <TextInput
+                  style={[s.input, { color: T.text }]}
+                  value={topArtists}
+                  onChangeText={setTopArtists}
+                  placeholder="e.g. Drake, Dua Lipa, Nucleya"
+                  placeholderTextColor={T.textMute}
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Playlist URL */}
+              <Text style={[s.chipGroupLabel, { color: T.textMute }]}>FAVOURITE PLAYLIST (optional URL)</Text>
+              <View style={[s.fieldCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                <TextInput
+                  style={[s.input, { color: T.text }]}
+                  value={playlistUrl}
+                  onChangeText={setPlaylistUrl}
+                  placeholder="Spotify / YouTube / Apple Music link"
+                  placeholderTextColor={T.textMute}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+
             {/* Save button */}
             <TouchableOpacity
               style={[s.saveBtn, { backgroundColor: T.text }, saving && { opacity: 0.6 }]}
@@ -421,6 +506,18 @@ function makeStyles(T: any) {
     atSign: { fontSize: 16, marginRight: 2 },
 
     rowTwo: { flexDirection: 'row', gap: 12 },
+
+    // Music & Vibe
+    musicSection:      { paddingHorizontal: 20, marginTop: 24, gap: 0 },
+    musicSectionTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3, marginBottom: 4 },
+    musicSectionSub:   { fontSize: 12, marginBottom: 16 },
+    chipGroupLabel:    { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginTop: 14, marginBottom: 8 },
+    chipWrap:          { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+      borderWidth: 1,
+    },
+    chipText: { fontSize: 13, fontWeight: '500' },
 
     // Save
     saveBtn: {

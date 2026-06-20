@@ -30,7 +30,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 }
 
 export type ProfileUpdate = Partial<
-  Pick<Profile, 'display_name' | 'username' | 'gender' | 'date_of_birth' | 'phone' | 'bio' | 'avatar_url'>
+  Pick<Profile, 'display_name' | 'username' | 'gender' | 'date_of_birth' | 'phone' | 'bio' | 'avatar_url' | 'top_genres' | 'top_artists' | 'vibe_tags' | 'fav_playlist_url'>
 >;
 
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<{ error: string | null }> {

@@ -1,94 +1,74 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
+import { Pressable, Text, PressableProps } from 'react-native';
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring 
+} from 'react-native-reanimated';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'gold';
-type Size    = 'sm' | 'md' | 'lg';
+// 1. Tell TypeScript this component accepts 'className'
+type CustomPressableProps = PressableProps & { className?: string };
+const AnimatedPressable = Animated.createAnimatedComponent(
+  Pressable as unknown as React.ComponentClass<CustomPressableProps>
+);
 
-interface ButtonProps {
+interface ButtonProps extends PressableProps {
   label: string;
-  onPress?: () => void;
-  variant?: Variant;
-  size?: Size;
-  loading?: boolean;
-  disabled?: boolean;
-  style?: ViewStyle;
-  fullWidth?: boolean;
+  variant?: 'primary' | 'glass';
+  className?: string;
 }
 
-const containerStyles: Record<Variant, ViewStyle> = {
-  primary:   { backgroundColor: '#0A0A0A' },
-  secondary: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8E7E3' },
-  ghost:     { backgroundColor: 'transparent' },
-  gold:      { backgroundColor: '#C8A951' },
-};
-
-const sizeStyles: Record<Size, ViewStyle> = {
-  sm: { paddingHorizontal: 14, paddingVertical: 8 },
-  md: { paddingHorizontal: 20, paddingVertical: 13 },
-  lg: { paddingHorizontal: 24, paddingVertical: 16 },
-};
-
-const labelColorStyles: Record<Variant, TextStyle> = {
-  primary:   { color: '#FFFFFF' },
-  secondary: { color: '#0A0A0A' },
-  ghost:     { color: '#0A0A0A' },
-  gold:      { color: '#FFFFFF' },
-};
-
-const labelSizeStyles: Record<Size, TextStyle> = {
-  sm: { fontSize: 13 },
-  md: { fontSize: 15 },
-  lg: { fontSize: 16 },
-};
-
-export function Button({
-  label,
-  onPress,
-  variant = 'primary',
-  size = 'md',
-  loading,
-  disabled,
-  style,
-  fullWidth,
+export default function Button({ 
+  label, 
+  variant = 'primary', 
+  className = '', 
+  ...props 
 }: ButtonProps) {
+  const scale = useSharedValue(1);
+
+  // Wireframe specific spring physics
+  const springConfig = {
+    mass: 1,
+    stiffness: 220,
+    damping: 26,
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, springConfig);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, springConfig);
+  };
+
+  const baseStyles = "h-[56px] w-full flex-row items-center justify-center rounded-full px-6";
+  const variants = {
+    primary: "bg-accent",
+    glass: "bg-glass-primary border border-glass-border",
+  };
+
+  // We use NativeWind classes for the text too, keeping it perfectly consistent
+  const textStyles = {
+    primary: "text-onAccent font-semibold text-[16px] tracking-tight",
+    glass: "text-[#F4F2EC] font-semibold text-[15px] tracking-tight",
+  };
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.72}
-      style={[
-        s.base,
-        containerStyles[variant],
-        sizeStyles[size],
-        fullWidth && s.fullWidth,
-        (disabled || loading) && s.disabled,
-        style,
-      ]}
+    <AnimatedPressable
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={animatedStyle}
+      // 2. className must be a top-level prop for NativeWind to intercept it!
+      className={`${baseStyles} ${variants[variant]} ${className}`}
+      {...props}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === 'secondary' || variant === 'ghost' ? '#0A0A0A' : '#FFFFFF'}
-          size="small"
-        />
-      ) : (
-        <Text style={[s.label, labelColorStyles[variant], labelSizeStyles[size]]}>
-          {label}
-        </Text>
-      )}
-    </TouchableOpacity>
+      <Text className={textStyles[variant]}>{label}</Text>
+    </AnimatedPressable>
   );
 }
-
-const s = StyleSheet.create({
-  base:      { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  fullWidth: { width: '100%' },
-  disabled:  { opacity: 0.38 },
-  label:     { fontWeight: '600', letterSpacing: 0.15 },
-});

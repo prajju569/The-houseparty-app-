@@ -1,389 +1,393 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Image, TextInput, StatusBar,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar,
+  TextInput, ScrollView, Platform, ActivityIndicator,
+  Alert, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { EVENTS } from '../../../data/fakeData';
-import { BottomNav } from '../../../shared/components/BottomNav';
+import { Feather } from '@expo/vector-icons';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { useTheme } from '../../../theme/ThemeContext';
+import { useLocationStore } from '../../../store/locationStore';
+import { fetchNearbyEvents, type NearbyEvent } from '../../../services/eventService';
 
-const T = {
-  bg: '#0C0C0C', card: '#161616', elevated: '#1E1E1E',
-  border: '#2A2A2A', gold: '#C9A84C', goldDim: 'rgba(201,168,76,0.15)',
-  green: '#00D37F', greenDim: 'rgba(0,211,127,0.15)',
-  text: '#F0F0EE', textSub: '#A0A09A', textMute: '#5A5A56',
-  purple: '#A855F7',
-};
+const FILTERS = ['All', 'Free', 'Tonight', '🔥 Hot', '🎵 Music', '🌿 Chill', '🍕 Food'];
 
-const FILTERS = [
-  { id: 'All',       icon: '✦',  label: 'All' },
-  { id: 'Tonight',   icon: '🌙', label: 'Tonight' },
-  { id: 'Free',      icon: '🎁', label: 'Free' },
-  { id: 'Bollywood', icon: '🎬', label: 'Bollywood' },
-  { id: 'EDM',       icon: '🎛️', label: 'EDM' },
-  { id: 'Jazz',      icon: '🎷', label: 'Jazz' },
-  { id: 'Sufi',      icon: '🎵', label: 'Sufi' },
-  { id: 'Hip-Hop',   icon: '🎤', label: 'Hip-Hop' },
-  { id: 'Delhi',     icon: '📍', label: 'Delhi' },
-  { id: 'Mumbai',    icon: '📍', label: 'Mumbai' },
-  { id: 'Bangalore', icon: '📍', label: 'Bangalore' },
-];
-
-// ── Compact header — 48dp search bar (Material Design standard) ───────────────
-function Hero({ query, setQuery }: { query: string; setQuery: (s: string) => void }) {
-  return (
-    <SafeAreaView edges={['top']} style={s.hero}>
-      <View style={s.heroRow}>
-        <View>
-          <Text style={s.heroEyebrow}>EXPLORE</Text>
-          <Text style={s.heroTitle}>Find your night.</Text>
-        </View>
-        <View style={s.heroCount}>
-          <Text style={s.heroCountNum}>{EVENTS.length}</Text>
-          <Text style={s.heroCountLbl}>parties</Text>
-        </View>
-      </View>
-
-      {/* 48dp height — Android Material Design search bar spec */}
-      <View style={s.searchWrap}>
-        <Text style={s.searchMag}>⌕</Text>
-        <TextInput
-          style={s.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="city, vibe, artist..."
-          placeholderTextColor={T.textMute}
-          selectionColor={T.gold}
-          returnKeyType="search"
-        />
-        {query.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setQuery('')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={{ color: T.textMute, fontSize: 16 }}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </SafeAreaView>
-  );
+function fmtDist(km: number) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
 }
 
-// ── Filter chips ──────────────────────────────────────────────────────────────
-function FilterBar({ active, setActive }: { active: string; setActive: (s: string) => void }) {
-  return (
-    <View style={s.filterWrap}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.filterRow}
-        bounces={false}
-      >
-        {FILTERS.map(f => {
-          const on = active === f.id;
-          return (
-            <TouchableOpacity
-              key={f.id}
-              style={[s.chip, on ? s.chipOn : s.chipOff]}
-              onPress={() => setActive(f.id)}
-              activeOpacity={0.75}
-            >
-              <Text style={s.chipIcon}>{f.icon}</Text>
-              <Text style={[s.chipLabel, on ? s.chipLabelOn : s.chipLabelOff]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-// ── Event card ────────────────────────────────────────────────────────────────
-function EventCard({ event, navigation }: { event: any; navigation: any }) {
-  const isClosed = event.status === 'closed';
-  const d = new Date(event.date);
-  const dateStr = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-  const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const isFull        = event.spotsLeft === 0;
-  const isAlmostFull  = !isFull && event.spotsLeft > 0 && event.spotsLeft <= 5;
-
-  return (
-    <TouchableOpacity
-      style={s.card}
-      activeOpacity={0.88}
-      onPress={() => navigation.navigate(
-        isClosed ? 'ClosedEvent' : 'EventDetail', { eventId: event.id }
-      )}
-    >
-      {/* Full-bleed cover */}
-      <View style={s.imgWrap}>
-        <Image source={{ uri: event.coverImage }} style={s.img} resizeMode="cover" />
-        <View style={s.imgGrad} />
-
-        {/* Top badges */}
-        <View style={s.badgeRow}>
-          {isClosed ? (
-            <View style={s.badgeClosed}><Text style={s.badgeClosedTxt}>ENDED</Text></View>
-          ) : event.host.verified ? (
-            <View style={s.badgeVerified}><Text style={s.badgeVerifiedTxt}>✓ VERIFIED</Text></View>
-          ) : <View />}
-          <View style={[s.badgeFee, event.fee === 0 && s.badgeFeeFree]}>
-            <Text style={[s.badgeFeeTxt, event.fee === 0 && s.badgeFeeFreeTxt]}>
-              {event.fee === 0 ? 'FREE' : `₹${event.fee}`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Date + title overlaid on image */}
-        <View style={s.imgBottom}>
-          <Text style={s.cardDateStr}>{dateStr.toUpperCase()} · {timeStr}</Text>
-          <Text style={s.cardTitle} numberOfLines={1}>{event.title}</Text>
-        </View>
-      </View>
-
-      {/* Card body */}
-      <View style={s.body}>
-        <View style={s.bodyRow}>
-          <Image source={{ uri: event.host.avatar }} style={s.avatar} />
-          <View style={{ flex: 1 }}>
-            <Text style={s.hostName}>{event.host.name}</Text>
-            <Text style={s.hostMeta}>📍 {event.area} · 🚇 {event.metroDistance}</Text>
-          </View>
-          <View style={[
-            s.spotPill,
-            isFull && !isClosed ? s.spotFull
-              : isClosed ? s.spotClosed
-              : isAlmostFull ? s.spotAlmost
-              : s.spotOpen,
-          ]}>
-            <Text style={[
-              s.spotTxt,
-              isFull && !isClosed ? s.spotTxtFull
-                : isClosed ? s.spotTxtClosed
-                : isAlmostFull ? s.spotTxtAlmost
-                : s.spotTxtOpen,
-            ]}>
-              {isClosed ? 'Ended' : isFull ? 'Full' : isAlmostFull ? `🔥 ${event.spotsLeft} left` : `${event.spotsLeft} left`}
-            </Text>
-          </View>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={s.tagRow}>
-            {event.tags.slice(0, 4).map((tag: string) => (
-              <View key={tag} style={s.tag}>
-                <Text style={s.tagTxt}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-    </TouchableOpacity>
-  );
+function isTonight(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation }: any) {
-  const [query, setQuery]         = useState('');
-  const [activeFilter, setActive] = useState('All');
+  const { T, isDark } = useTheme();
+  const { lat, lng, area, city, permissionGranted, setLocation, setPermission } = useLocationStore();
 
-  const filtered = EVENTS.filter(e => {
-    const q = query.toLowerCase();
-    const matchQ = !q
-      || e.title.toLowerCase().includes(q)
-      || e.area.toLowerCase().includes(q)
-      || e.city.toLowerCase().includes(q);
-    const matchF = activeFilter === 'All'
-      || (activeFilter === 'Free'    && e.fee === 0)
-      || (activeFilter === 'Tonight' && new Date(e.date).toDateString() === new Date().toDateString())
-      || e.tags.some((t: string) => t.toLowerCase().includes(activeFilter.toLowerCase()))
-      || e.city.toLowerCase().includes(activeFilter.toLowerCase());
-    return matchQ && matchF;
+  const [events,       setEvents]       = useState<NearbyEvent[]>([]);
+  const [loading,      setLoading]      = useState(false);
+  const [filter,       setFilter]       = useState('All');
+  const [searching,    setSearching]    = useState(false);
+  const [searchText,   setSearchText]   = useState('');
+  const [selectedPin,  setSelectedPin]  = useState<string | null>(null);
+  const searchRef = useRef<TextInput>(null);
+  const mapRef    = useRef<MapView>(null);
+
+  const hasLocation = lat !== null && lng !== null;
+
+  // ── Load nearby events ────────────────────────────────────────────────────
+  const loadEvents = useCallback(async (userLat: number, userLng: number) => {
+    setLoading(true);
+    const data = await fetchNearbyEvents(userLat, userLng, 7);
+    setEvents(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (hasLocation) loadEvents(lat!, lng!);
+  }, [lat, lng]);
+
+  // ── Manual location request (if permission was denied on boot) ────────────
+  async function requestLocation() {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Location needed',
+        'Enable location in Settings to see parties near you.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+      setPermission(false);
+      return;
+    }
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const { latitude, longitude } = pos.coords;
+    const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+    const a = geo?.district ?? geo?.subregion ?? geo?.city ?? '';
+    const c = geo?.city ?? geo?.region ?? '';
+    setLocation(latitude, longitude, a, c);
+  }
+
+  // ── Filter events ─────────────────────────────────────────────────────────
+  const filtered = events.filter(e => {
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      return (
+        e.title.toLowerCase().includes(q) ||
+        (e.area ?? '').toLowerCase().includes(q) ||
+        (e.vibe ?? []).some(v => v.toLowerCase().includes(q))
+      );
+    }
+    if (filter === 'All')     return true;
+    if (filter === 'Free')    return e.entry_fee === 0;
+    if (filter === 'Tonight') return isTonight(e.date);
+    return (e.vibe ?? []).some(v => v.includes(filter.replace(/^[^ ]+ /, '')));
   });
+
+  const selectedEvent = filtered.find(e => e.id === selectedPin) ?? null;
+
+  const s = StyleSheet.create({
+    root:  { flex: 1, backgroundColor: T.bg },
+    map:   { flex: 1 },
+
+    // Top bar
+    topBar: {
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+      paddingHorizontal: 16,
+    },
+    locPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(9,9,9,0.75)',
+      borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+      marginBottom: 8,
+    },
+    locText:  { color: 'rgba(244,242,236,0.75)', fontSize: 12, fontWeight: '500' },
+    searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    searchBox: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: isDark ? 'rgba(13,13,14,0.90)' : 'rgba(246,244,239,0.95)',
+      borderRadius: 16, paddingHorizontal: 14, height: 48,
+      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+    },
+    searchInput: { flex: 1, color: T.text, fontSize: 15 },
+
+    // Filter chips
+    filtersWrap: {
+      position: 'absolute', zIndex: 10,
+      left: 0, right: 0,
+    },
+    filterChip: {
+      paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+    },
+    filterChipActive: {
+      backgroundColor: T.accent, borderColor: T.accent,
+    },
+    filterChipText:       { color: T.textSub, fontSize: 13, fontWeight: '500' },
+    filterChipTextActive: { color: '#090909', fontWeight: '700' },
+
+    // No-location state
+    noLocBox: {
+      flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32,
+    },
+    noLocIcon:  { width: 72, height: 72, borderRadius: 36, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center' },
+    noLocTitle: { color: T.text, fontSize: 20, fontWeight: '700', textAlign: 'center', letterSpacing: -0.4 },
+    noLocSub:   { color: T.textMute, fontSize: 14, textAlign: 'center', lineHeight: 22 },
+    noLocBtn:   { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 28, backgroundColor: T.accent },
+    noLocBtnTx: { color: '#090909', fontSize: 15, fontWeight: '700' },
+
+    // Bottom sheet
+    sheet: {
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      backgroundColor: isDark ? 'rgba(13,13,14,0.96)' : 'rgba(246,244,239,0.97)',
+      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      borderTopWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      paddingBottom: Platform.OS === 'android' ? 110 : 100,
+    },
+    sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)', alignSelf: 'center', marginTop: 10, marginBottom: 12 },
+    sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginBottom: 8 },
+    sheetTitle:  { color: T.text, fontSize: 16, fontWeight: '700' },
+    sheetCount:  { color: T.textMute, fontSize: 13 },
+
+    // Event row
+    eventRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      paddingHorizontal: 18, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+    },
+    eventRowSel: { backgroundColor: isDark ? 'rgba(232,227,216,0.05)' : 'rgba(0,0,0,0.03)' },
+    eventDot:    { width: 10, height: 10, borderRadius: 5 },
+    eventName:   { color: T.text, fontSize: 15, fontWeight: '600', letterSpacing: -0.2, flex: 1 },
+    eventMeta:   { color: T.textMute, fontSize: 12, marginTop: 2 },
+    eventDist:   { color: T.textMute, fontSize: 12, fontWeight: '500' },
+    eventFee:    { color: T.accent, fontSize: 13, fontWeight: '600' },
+
+    loadingBox: { paddingVertical: 32, alignItems: 'center', gap: 10 },
+    loadingTx:  { color: T.textMute, fontSize: 14 },
+
+    emptyBox:  { paddingVertical: 40, alignItems: 'center', gap: 8 },
+    emptyTx:   { color: T.textMute, fontSize: 14, textAlign: 'center' },
+  });
+
+  const region = hasLocation ? {
+    latitude: lat!,
+    longitude: lng!,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.08,
+  } : {
+    latitude: 19.0760,
+    longitude: 72.8777,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.08,
+  };
+
+  // Measure top bar height dynamically
+  const [topBarH, setTopBarH] = useState(140);
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[1]}>
-        {/* 0 — Compact hero (not sticky) */}
-        <Hero query={query} setQuery={setQuery} />
+      {permissionGranted === false ? (
+        // ── No location permission ─────────────────────────────────────────
+        <SafeAreaView style={s.noLocBox} edges={['top']}>
+          <View style={s.noLocIcon}>
+            <Feather name="map-pin" size={30} color={T.textMute} />
+          </View>
+          <Text style={s.noLocTitle}>Where should we look?</Text>
+          <Text style={s.noLocSub}>
+            Houseparty uses your location to show parties within 7 km. We never share your exact position.
+          </Text>
+          <TouchableOpacity style={s.noLocBtn} onPress={requestLocation} activeOpacity={0.88}>
+            <Text style={s.noLocBtnTx}>Enable Location</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      ) : (
+        <>
+          {/* ── Map ──────────────────────────────────────────────────────── */}
+          <MapView
+            ref={mapRef}
+            style={s.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={region}
+            showsUserLocation
+            showsMyLocationButton={false}
+            userInterfaceStyle={isDark ? 'dark' : 'light'}
+          >
+            {/* 7km radius circle */}
+            {hasLocation && (
+              <Circle
+                center={{ latitude: lat!, longitude: lng! }}
+                radius={7000}
+                strokeColor="rgba(232,227,216,0.25)"
+                fillColor="rgba(232,227,216,0.04)"
+              />
+            )}
 
-        {/* 1 — Filter bar (sticky) */}
-        <FilterBar active={activeFilter} setActive={setActive} />
+            {/* Event pins */}
+            {filtered.map(event => (
+              <Marker
+                key={event.id}
+                coordinate={{
+                  latitude: event.lat ?? lat ?? 19.076,
+                  longitude: event.lng ?? lng ?? 72.877,
+                }}
+                onPress={() => {
+                  setSelectedPin(event.id);
+                  mapRef.current?.animateToRegion({
+                    latitude: (event.lat ?? lat ?? 19.076) - 0.005,
+                    longitude: event.lng ?? lng ?? 72.877,
+                    latitudeDelta: 0.04,
+                    longitudeDelta: 0.04,
+                  }, 400);
+                }}
+              >
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16,
+                  backgroundColor: selectedPin === event.id ? T.accent : isDark ? 'rgba(20,20,20,0.95)' : 'rgba(246,244,239,0.95)',
+                  borderWidth: 1,
+                  borderColor: selectedPin === event.id ? T.accent : 'rgba(255,255,255,0.15)',
+                }}>
+                  <Text style={{
+                    fontSize: 12, fontWeight: '700',
+                    color: selectedPin === event.id ? '#090909' : T.text,
+                  }}>
+                    {event.entry_fee === 0 ? 'Free' : `₹${event.entry_fee}`}
+                  </Text>
+                </View>
+              </Marker>
+            ))}
+          </MapView>
 
-        {/* 2 — Cards */}
-        <View style={s.list}>
-          {filtered.length === 0 ? (
-            <View style={s.empty}>
-              <Text style={s.emptyIcon}>🎈</Text>
-              <Text style={s.emptyTitle}>No parties here</Text>
-              <Text style={s.emptySub}>
-                {query
-                  ? `No results for "${query}"${activeFilter !== 'All' ? ` in ${activeFilter}` : ''}`
-                  : `No ${activeFilter} parties available right now`}
+          {/* ── Top bar (search + location pill) ─────────────────────────── */}
+          <SafeAreaView
+            style={s.topBar}
+            edges={['top']}
+            onLayout={e => setTopBarH(e.nativeEvent.layout.height + 16)}
+          >
+            {/* Location pill */}
+            <TouchableOpacity style={s.locPill} onPress={requestLocation} activeOpacity={0.8}>
+              <Feather name="map-pin" size={12} color="rgba(232,227,216,0.7)" />
+              <Text style={s.locText}>
+                {area || city || (hasLocation ? 'Your location' : 'Set location')}
               </Text>
-              {(query || activeFilter !== 'All') && (
-                <TouchableOpacity
-                  style={s.clearBtn}
-                  onPress={() => { setQuery(''); setActive('All'); }}
-                >
-                  <Text style={s.clearBtnTxt}>Clear filters</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : (
-            filtered.map(e => (
-              <EventCard key={e.id} event={e} navigation={navigation} />
-            ))
-          )}
-          <View style={{ height: 100 }} />
-        </View>
-      </ScrollView>
+              <Feather name="chevron-down" size={12} color="rgba(232,227,216,0.5)" />
+            </TouchableOpacity>
 
-      <BottomNav navigation={navigation} active="Discover" />
+            {/* Search bar */}
+            <View style={s.searchRow}>
+              <View style={s.searchBox}>
+                <Feather name="search" size={16} color={T.textMute} />
+                <TextInput
+                  ref={searchRef}
+                  style={s.searchInput}
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholder="Search area or vibe…"
+                  placeholderTextColor={T.textMute}
+                  onFocus={() => setSearching(true)}
+                  onBlur={() => { if (!searchText) setSearching(false); }}
+                  returnKeyType="search"
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity onPress={() => { setSearchText(''); setSearching(false); }}>
+                    <Feather name="x" size={16} color={T.textMute} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Filter chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 10 }}
+              contentContainerStyle={{ paddingRight: 16 }}
+            >
+              {FILTERS.map(f => (
+                <TouchableOpacity
+                  key={f}
+                  style={[s.filterChip, filter === f && s.filterChipActive]}
+                  onPress={() => setFilter(f)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[s.filterChipText, filter === f && s.filterChipTextActive]}>{f}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+
+          {/* ── Bottom sheet ─────────────────────────────────────────────── */}
+          <View style={[s.sheet, { maxHeight: '52%' }]}>
+            <View style={s.sheetHandle} />
+            <View style={s.sheetHeader}>
+              <Text style={s.sheetTitle}>
+                {searchText ? `Results for "${searchText}"` : `Parties near you`}
+              </Text>
+              <Text style={s.sheetCount}>{filtered.length} found</Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {loading ? (
+                <View style={s.loadingBox}>
+                  <ActivityIndicator color={T.accent} />
+                  <Text style={s.loadingTx}>Finding parties near you…</Text>
+                </View>
+              ) : filtered.length === 0 ? (
+                <View style={s.emptyBox}>
+                  <Feather name="calendar" size={28} color={T.textMute} />
+                  <Text style={s.emptyTx}>
+                    {hasLocation
+                      ? 'No parties within 7 km right now.\nCheck back soon!'
+                      : 'Enable location to see nearby parties.'}
+                  </Text>
+                </View>
+              ) : (
+                filtered.map(event => (
+                  <TouchableOpacity
+                    key={event.id}
+                    style={[s.eventRow, selectedPin === event.id && s.eventRowSel]}
+                    onPress={() => {
+                      setSelectedPin(event.id);
+                      navigation.navigate('EventDetail', { eventId: event.id });
+                    }}
+                    activeOpacity={0.82}
+                  >
+                    <View style={[s.eventDot, {
+                      backgroundColor: event.is_private ? T.amber : T.green ?? '#00D37F',
+                    }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.eventName} numberOfLines={1}>{event.title}</Text>
+                      <Text style={s.eventMeta}>
+                        {isTonight(event.date) ? '🔴 Tonight · ' : ''}{fmtTime(event.date)}
+                        {event.area ? ` · ${event.area}` : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <Text style={s.eventFee}>{event.entry_fee === 0 ? 'Free' : `₹${event.entry_fee}`}</Text>
+                      <Text style={s.eventDist}>{fmtDist(event.distance_km)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </>
+      )}
     </View>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
-
-  // Compact hero — no wasted space
-  hero: {
-    backgroundColor: T.bg,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
-  },
-  heroRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-end', marginBottom: 14, marginTop: 10,
-  },
-  heroEyebrow: {
-    color: T.gold, fontSize: 10, fontWeight: '800',
-    letterSpacing: 3, marginBottom: 4,
-  },
-  heroTitle: {
-    color: T.text, fontSize: 26, fontWeight: '900',
-  },
-  heroCount: { alignItems: 'flex-end' },
-  heroCountNum: { color: T.gold, fontSize: 28, fontWeight: '900', lineHeight: 30 },
-  heroCountLbl: { color: T.textMute, fontSize: 11 },
-
-  // 48dp search bar — Material Design Android spec
-  searchWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: T.elevated,
-    borderRadius: 12, paddingHorizontal: 14, height: 48,
-    borderWidth: 1, borderColor: T.border,
-  },
-  searchMag: { color: T.gold, fontSize: 20 },
-  searchInput: { flex: 1, color: T.text, fontSize: 16 },
-
-  // Filter bar
-  filterWrap: {
-    backgroundColor: T.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
-    paddingVertical: 10,
-  },
-  filterRow: { paddingHorizontal: 20, gap: 8 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 13, height: 36,
-    borderRadius: 18, borderWidth: 1,
-  },
-  chipOn:  { backgroundColor: T.gold, borderColor: T.gold },
-  chipOff: { backgroundColor: T.elevated, borderColor: T.border },
-  chipIcon: { fontSize: 12 },
-  chipLabel: { fontSize: 13, fontWeight: '600' },
-  chipLabelOn:  { color: '#000' },
-  chipLabelOff: { color: T.textSub },
-
-  // Cards list
-  list: { padding: 16, gap: 16 },
-
-  // Event card
-  card: {
-    backgroundColor: T.card, borderRadius: 20,
-    borderWidth: 1, borderColor: T.border, overflow: 'hidden',
-  },
-  imgWrap: { height: 210, position: 'relative' },
-  img: { width: '100%', height: '100%', backgroundColor: T.elevated },
-  imgGrad: { ...StyleSheet.absoluteFill, backgroundColor: 'transparent' },
-  badgeRow: {
-    position: 'absolute', top: 12, left: 12, right: 12,
-    flexDirection: 'row', justifyContent: 'space-between',
-  },
-  badgeClosed: {
-    backgroundColor: 'rgba(255,90,90,0.2)', borderRadius: 8,
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(255,90,90,0.5)',
-  },
-  badgeClosedTxt: { color: '#FF5A5A', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  badgeVerified: {
-    backgroundColor: 'rgba(0,211,127,0.18)', borderRadius: 8,
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(0,211,127,0.45)',
-  },
-  badgeVerifiedTxt: { color: T.green, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  badgeFee: {
-    backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: T.gold,
-  },
-  badgeFeeTxt: { color: T.gold, fontSize: 12, fontWeight: '800' },
-  badgeFeeFree: { backgroundColor: 'rgba(0,211,127,0.2)', borderColor: T.green },
-  badgeFeeFreeTxt: { color: T.green },
-  imgBottom: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 14, backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  cardDateStr: {
-    color: T.gold, fontSize: 10, fontWeight: '700',
-    letterSpacing: 1, marginBottom: 3,
-  },
-  cardTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-
-  body: { padding: 14, gap: 10 },
-  bodyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: T.elevated },
-  hostName: { color: T.text, fontSize: 13, fontWeight: '700' },
-  hostMeta: { color: T.textMute, fontSize: 11, marginTop: 1 },
-
-  spotPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  spotOpen:   { backgroundColor: T.greenDim, borderColor: 'rgba(0,211,127,0.4)' },
-  spotFull:   { backgroundColor: 'rgba(255,90,90,0.1)', borderColor: 'rgba(255,90,90,0.4)' },
-  spotClosed: { backgroundColor: T.elevated, borderColor: T.border },
-  spotAlmost: { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.4)' },
-  spotTxt: { fontSize: 11, fontWeight: '700' },
-  spotTxtOpen:   { color: T.green },
-  spotTxtFull:   { color: '#FF5A5A' },
-  spotTxtClosed: { color: T.textMute },
-  spotTxtAlmost: { color: '#F59E0B' },
-
-  tagRow: { flexDirection: 'row', gap: 6 },
-  tag: {
-    backgroundColor: T.elevated, borderRadius: 6,
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: T.border,
-  },
-  tagTxt: { color: T.textMute, fontSize: 11 },
-
-  // Empty state
-  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
-  emptyIcon: { fontSize: 44 },
-  emptyTitle: { color: T.text, fontSize: 20, fontWeight: '800' },
-  emptySub: { color: T.textMute, fontSize: 14, textAlign: 'center', paddingHorizontal: 20 },
-  clearBtn: {
-    marginTop: 6, backgroundColor: T.elevated, borderRadius: 22,
-    paddingHorizontal: 22, paddingVertical: 11,
-    borderWidth: 1, borderColor: T.border,
-  },
-  clearBtnTxt: { color: T.gold, fontSize: 14, fontWeight: '700' },
-});

@@ -82,7 +82,7 @@ export function RollingCounter({
   value,
   suffix = '',
   fontSize = 48,
-  color = '#C9A84C',
+  color = '#E8E3D8',
   fontWeight = '900',
   staggerMs = 90,
   style,

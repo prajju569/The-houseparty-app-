@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTheme } from '../theme/ThemeContext';
 import GuestDashboardScreen from '../features/parties/screens/GuestDashboardScreen';
 import DiscoverScreen from '../features/parties/screens/DiscoverScreen';
 import EventDetailScreen from '../features/parties/screens/EventDetailScreen';
@@ -10,6 +11,12 @@ import SavedScreen from '../features/saved/screens/SavedScreen';
 import ProfileScreen from '../features/profile/screens/ProfileScreen';
 import NearbyHostsScreen from '../features/parties/screens/NearbyHostsScreen';
 import EditProfileScreen from '../features/profile/screens/EditProfileScreen';
+import RSVPNavigator from '../features/parties/screens/rsvp/RSVPNavigator';
+import HostProfileScreen from '../features/parties/screens/HostProfileScreen';
+import ConversationsScreen from '../features/chat/screens/ConversationsScreen';
+import NotificationsScreen from '../features/notifications/NotificationsScreen';
+import SettingsScreen from '../features/settings/SettingsScreen';
+import EditPlaylistScreen from '../features/parties/screens/EditPlaylistScreen';
 
 export type GuestStackParamList = {
   Home: undefined;
@@ -18,20 +25,28 @@ export type GuestStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
   NearbyHosts: undefined;
-  EventDetail: { eventId: string; alreadyRsvped?: boolean };
+  EventDetail: { eventId: string; alreadyRsvped?: boolean; bookingRef?: string; bookingId?: string };
   ClosedEvent: { eventId: string };
   Gallery: { eventId?: string };
   Chat: { hostId?: string };
+  RSVPFlow: { eventId: string };
+  HostProfile: { hostId: string };
+  Conversations: undefined;
+  Notifications: undefined;
+  Settings: undefined;
+  EditPlaylist: { eventId: string; playlistUrl?: string | null; tracks?: any[] };
 };
 
 const Stack = createNativeStackNavigator<GuestStackParamList>();
 
-export default function GuestNavigator() {
+export default function GuestNavigator({ initialRoute = 'Home' }: { initialRoute?: keyof GuestStackParamList }) {
+  const { T } = useTheme();
   return (
     <Stack.Navigator
+      initialRouteName={initialRoute}
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0C0C0C' },
+        contentStyle: { backgroundColor: T.bg },
         animation: 'slide_from_right',
       }}
     >
@@ -57,6 +72,16 @@ export default function GuestNavigator() {
         component={ChatScreen}
         options={{ animation: 'slide_from_bottom' }}
       />
+      <Stack.Screen
+        name="RSVPFlow"
+        component={RSVPNavigator}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen name="HostProfile"    component={HostProfileScreen} />
+      <Stack.Screen name="Conversations"  component={ConversationsScreen} />
+      <Stack.Screen name="Notifications"  component={NotificationsScreen} />
+      <Stack.Screen name="Settings"       component={SettingsScreen} />
+      <Stack.Screen name="EditPlaylist"   component={EditPlaylistScreen} />
     </Stack.Navigator>
   );
 }

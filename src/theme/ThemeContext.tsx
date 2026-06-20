@@ -3,42 +3,63 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@hp_theme';
 
-// ── Token sets ────────────────────────────────────────────────────────────────
+// ── Wireframe "Liquid Glass" design system ────────────────────────────────────
 export const DARK_TOKENS = {
-  bg:        '#0C0C0C',
-  card:      '#161616',
-  elevated:  '#1E1E1E',
-  border:    '#2A2A2A',
-  text:      '#F0F0EE',
-  textSub:   '#A0A09A',
-  textMute:  '#5A5A56',
-  gold:      '#C9A84C',
-  goldDim:   'rgba(201,168,76,0.14)',
-  green:     '#00D37F',
-  greenDim:  'rgba(0,211,127,0.14)',
-  red:       '#FF5A5A',
-  separator: '#1C1C1C',
+  bg:          '#090909',
+  card:        'rgba(255,255,255,0.06)',
+  elevated:    'rgba(255,255,255,0.04)',
+  surface:     'rgba(255,255,255,0.05)',
+  surfaceHigh: 'rgba(255,255,255,0.08)',
+  border:      'rgba(255,255,255,0.08)',
+  borderHigh:  'rgba(255,255,255,0.12)',
+  // accent – champagne (replaces yellow-gold)
+  accent:      '#E8E3D8',
+  accentDim:   'rgba(232,227,216,0.14)',
+  onAccent:    '#090909',
+  // legacy alias kept for screens that still reference T.gold
+  gold:        '#E8E3D8',
+  goldDim:     'rgba(232,227,216,0.14)',
+  // semantic
+  green:       '#00D37F',
+  greenDim:    'rgba(0,211,127,0.14)',
+  amber:       '#F59E0B',
+  amberDim:    'rgba(245,158,11,0.14)',
+  red:         '#FF5A5A',
+  blue:        '#5B8CFF',
+  // text
+  text:        '#F4F2EC',
+  textSub:     'rgba(244,242,236,0.65)',
+  textMute:    'rgba(244,242,236,0.38)',
+  separator:   'rgba(255,255,255,0.06)',
 };
 
 export const LIGHT_TOKENS = {
-  bg:        '#F2F2F7',
-  card:      '#FFFFFF',
-  elevated:  '#EBEBF0',
-  border:    '#E0E0E5',
-  text:      '#0C0C0C',
-  textSub:   '#555558',
-  textMute:  '#999999',
-  gold:      '#B8902A',
-  goldDim:   'rgba(184,144,42,0.10)',
-  green:     '#00A86B',
-  greenDim:  'rgba(0,168,107,0.10)',
-  red:       '#D93025',
-  separator: '#E8E8ED',
+  bg:          '#F2F2F7',
+  card:        '#FFFFFF',
+  elevated:    '#EBEBF0',
+  surface:     'rgba(0,0,0,0.03)',
+  surfaceHigh: 'rgba(0,0,0,0.06)',
+  border:      'rgba(0,0,0,0.08)',
+  borderHigh:  'rgba(0,0,0,0.14)',
+  accent:      '#B8902A',
+  accentDim:   'rgba(184,144,42,0.10)',
+  onAccent:    '#FFFFFF',
+  gold:        '#B8902A',
+  goldDim:     'rgba(184,144,42,0.10)',
+  green:       '#00A86B',
+  greenDim:    'rgba(0,168,107,0.10)',
+  amber:       '#D97706',
+  amberDim:    'rgba(217,119,6,0.10)',
+  red:         '#D93025',
+  blue:        '#3B82F6',
+  text:        '#0C0C0C',
+  textSub:     'rgba(12,12,12,0.65)',
+  textMute:    'rgba(12,12,12,0.38)',
+  separator:   'rgba(0,0,0,0.06)',
 };
 
 export type ThemeTokens = typeof DARK_TOKENS;
 
-// ── Context ───────────────────────────────────────────────────────────────────
 interface ThemeCtx {
   isDark: boolean;
   T: ThemeTokens;

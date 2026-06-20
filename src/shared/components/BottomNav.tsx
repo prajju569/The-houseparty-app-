@@ -1,73 +1,131 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from '../../theme/ThemeContext';
 
-const T = {
-  card: '#161616', border: '#2A2A2A', gold: '#C9A84C',
-  textMute: '#5A5A56',
-};
+interface BottomNavProps {
+  appMode: 'GUEST' | 'HOST';
+  currentRoute: string;
+  onNavigate: (route: string) => void;
+}
 
-const NAV_ITEMS = [
-  { icon: '⊞', label: 'Home',    screen: 'Home' },
-  { icon: '◎', label: 'Explore', screen: 'Discover' },
-  { icon: '★', label: 'Saved',   screen: 'Saved' },
-  { icon: '◯', label: 'Profile', screen: 'Profile' },
+type GuestTab = { route: string; icon: keyof typeof Feather.glyphMap };
+type HostTab  = { route: string; icon: keyof typeof Feather.glyphMap; isCenter?: boolean };
+
+const GUEST_TABS: GuestTab[] = [
+  { route: 'Home',        icon: 'home'     },
+  { route: 'Discover',    icon: 'compass'  },
+  { route: 'Saved',       icon: 'bookmark' },
+  { route: 'NearbyHosts', icon: 'users'    },
+  { route: 'Profile',     icon: 'user'     },
 ];
 
-export function BottomNav({ navigation, active }: { navigation: any; active: string }) {
+const HOST_TABS: HostTab[] = [
+  { route: 'Dashboard',   icon: 'grid'           },
+  { route: 'Analytics',   icon: 'bar-chart-2'    },
+  { route: 'CreateEvent', icon: 'plus',  isCenter: true },
+  { route: 'Messages',    icon: 'message-circle' },
+  { route: 'Profile',     icon: 'user'           },
+];
+
+export default function BottomNav({ appMode, currentRoute, onNavigate }: BottomNavProps) {
+  const { T, isDark } = useTheme();
+  const isGuest = appMode === 'GUEST';
+  const tabs = isGuest ? GUEST_TABS : HOST_TABS;
+
+  const ACTIVE   = T.accent;
+  const INACTIVE = T.textMute;
+  const DOCK_BG  = isDark ? 'rgba(18,18,20,0.82)' : 'rgba(240,238,234,0.88)';
+  const BORDER   = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+
   return (
-    <View style={s.navBar}>
-      {NAV_ITEMS.slice(0, 2).map(item => (
-        <TouchableOpacity
-          key={item.label} style={s.navItem} activeOpacity={0.7}
-          onPress={() => active !== item.screen && navigation.navigate(item.screen)}
-        >
-          <Text style={[s.navIcon, active === item.screen && s.navActive]}>{item.icon}</Text>
-          <Text style={[s.navLabel, active === item.screen && s.navActiveLbl]}>{item.label}</Text>
-        </TouchableOpacity>
-      ))}
-      <View style={s.navCenter}>
-        <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate('NearbyHosts')} activeOpacity={0.8}>
-          <Text style={s.createIcon}>＋</Text>
-        </TouchableOpacity>
+    <View style={s.wrap} pointerEvents="box-none">
+      <View style={[s.dock, { backgroundColor: DOCK_BG, borderColor: BORDER }]}>
+        {tabs.map(tab => {
+          const isActive  = currentRoute === tab.route;
+          const isCenter  = (tab as HostTab).isCenter;
+
+          return (
+            <TouchableOpacity
+              key={tab.route}
+              onPress={() => onNavigate(tab.route)}
+              activeOpacity={0.7}
+              style={isCenter ? s.centerBtn : s.tab}
+            >
+              {isCenter ? (
+                <View style={[s.centerInner, { backgroundColor: T.accent }]}>
+                  <Feather name={tab.icon} size={22} color={T.onAccent} />
+                </View>
+              ) : (
+                <View style={s.tabInner}>
+                  <Feather
+                    name={tab.icon}
+                    size={22}
+                    color={isActive ? ACTIVE : INACTIVE}
+                    strokeWidth={isActive ? 2 : 1.5}
+                  />
+                  {isActive && <View style={[s.activeDot, { backgroundColor: ACTIVE }]} />}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      {NAV_ITEMS.slice(2).map(item => (
-        <TouchableOpacity
-          key={item.label} style={s.navItem} activeOpacity={0.7}
-          onPress={() => active !== item.screen && navigation.navigate(item.screen)}
-        >
-          <Text style={[s.navIcon, active === item.screen && s.navActive]}>{item.icon}</Text>
-          <Text style={[s.navLabel, active === item.screen && s.navActiveLbl]}>{item.label}</Text>
-        </TouchableOpacity>
-      ))}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  navBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: T.card, borderTopWidth: 1, borderTopColor: T.border,
-    paddingBottom: Platform.OS === 'android' ? 8 : 24,
-    paddingTop: 8, paddingHorizontal: 8,
-    ...(Platform.OS === 'android' ? { elevation: 24 } : {
-      shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.4, shadowRadius: 16,
+  wrap: {
+    position: 'absolute',
+    bottom: 26,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+
+  dock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 36,
+    borderWidth: 1,
+    gap: 4,
+    ...Platform.select({
+      ios:     { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 24 },
+      android: { elevation: 20 },
     }),
   },
-  navItem: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 4 },
-  navIcon: { fontSize: 20, color: T.textMute },
-  navLabel: { fontSize: 10, color: T.textMute, fontWeight: '500' },
-  navActive: { color: T.gold },
-  navActiveLbl: { color: T.gold },
-  navCenter: { width: 64, alignItems: 'center' },
-  createBtn: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: T.gold, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8,
-    ...(Platform.OS === 'android' ? { elevation: 8 } : {
-      shadowColor: T.gold, shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.5, shadowRadius: 10,
-    }),
+
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
   },
-  createIcon: { color: '#000', fontSize: 24, lineHeight: 28, fontWeight: '700' },
+
+  tabInner: {
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  centerBtn: {
+    marginHorizontal: 4,
+  },
+
+  centerInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
