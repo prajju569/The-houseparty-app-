@@ -15,7 +15,61 @@
 
 import { supabase } from './supabaseClient';
 import type { Profile } from '../shared/types';
+import type { PlaylistTrack } from './playlistService';
 import { blobTooLarge } from '../shared/utils/image';
+
+/** Cross-user-readable profile (the public_profiles view — no PII). */
+export type PublicProfile = {
+  id: string;
+  username: string | null;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  top_genres: string[] | null;
+  top_artists: string[] | null;
+  vibe_tags: string[] | null;
+  top_songs: PlaylistTrack[] | null;
+  role: 'guest' | 'host';
+  is_private: boolean | null;
+  is_verified: boolean | null;
+};
+
+const PUBLIC_COLS =
+  'id, username, display_name, avatar_url, bio, top_genres, top_artists, vibe_tags, top_songs, role, is_private, is_verified';
+
+/** Read any user's safe public profile (used for user-to-user profile views). */
+export async function fetchPublicProfile(userId: string): Promise<PublicProfile | null> {
+  const { data, error } = await supabase
+    .from('public_profiles')
+    .select(PUBLIC_COLS)
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[profileService] fetchPublicProfile:', error.message);
+    return null;
+  }
+  return (data as PublicProfile) ?? null;
+}
+
+/** Search people by username or display name. Input is sanitized because it is
+ *  interpolated into a PostgREST or() filter expression. */
+export async function searchUsers(query: string, excludeId?: string): Promise<PublicProfile[]> {
+  // Strip characters that have meaning inside an or()/ilike filter expression.
+  const q = query.trim().replace(/[,()*%\\]/g, '').slice(0, 40);
+  if (!q) return [];
+  let req = supabase
+    .from('public_profiles')
+    .select(PUBLIC_COLS)
+    .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+    .limit(20);
+  if (excludeId) req = req.neq('id', excludeId);
+  const { data, error } = await req;
+  if (error) {
+    console.warn('[profileService] searchUsers:', error.message);
+    return [];
+  }
+  return (data as PublicProfile[]) ?? [];
+}
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase

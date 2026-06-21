@@ -45,6 +45,7 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   const MENU_ROWS: { icon: keyof typeof Feather.glyphMap; label: string; onPress?: () => void; toggle?: boolean }[] = [
+    { icon: 'search',         label: 'Find people',   onPress: () => navigation.navigate('PeopleSearch') },
     { icon: 'bookmark',       label: 'Saved events',  onPress: () => navigation.navigate('Saved') },
     { icon: 'message-circle', label: 'Messages',      onPress: () => navigation.navigate('Conversations') },
     { icon: 'bell',     label: 'Notifications', onPress: () => navigation.navigate('Notifications') },

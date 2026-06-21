@@ -210,6 +210,40 @@ export async function fetchEventBookings(eventId: string): Promise<EventBooking[
   return data.map((b: any) => ({ ...b, profiles: profileMap[b.guest_id] ?? null })) as EventBooking[];
 }
 
+/** Confirmed attendees of an event with their vibe-scoring fields, for the
+ *  guest-facing "who's going" list. Excludes the viewer. Two-step join because
+ *  there is no FK from bookings → profiles. */
+export type EventAttendee = {
+  id: string;
+  username: string | null;
+  display_name: string;
+  avatar_url: string | null;
+  top_genres: string[] | null;
+  top_artists: string[] | null;
+  vibe_tags: string[] | null;
+  is_verified: boolean | null;
+};
+
+export async function fetchEventAttendees(eventId: string, excludeId?: string): Promise<EventAttendee[]> {
+  const { data: bookings, error } = await supabase
+    .from('bookings')
+    .select('guest_id')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed');
+  if (error || !bookings?.length) return [];
+
+  let ids = [...new Set(bookings.map((b: any) => b.guest_id).filter(Boolean))];
+  if (excludeId) ids = ids.filter(id => id !== excludeId);
+  if (!ids.length) return [];
+
+  const { data: profs, error: pErr } = await supabase
+    .from('public_profiles')
+    .select('id, username, display_name, avatar_url, top_genres, top_artists, vibe_tags, is_verified')
+    .in('id', ids);
+  if (pErr || !profs) return [];
+  return profs as EventAttendee[];
+}
+
 // ── Host: approve or deny a booking ──────────────────────────────────────────
 export async function updateBookingStatus(
   bookingId: string,

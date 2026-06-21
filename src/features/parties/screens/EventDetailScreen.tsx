@@ -168,7 +168,7 @@ function GuestCountPicker({ value, onChange }: { value: number; onChange: (n: nu
   );
 }
 
-function WhoIsGoingBar({ event }: { event: SupaEvent }) {
+function WhoIsGoingBar({ event, onPress }: { event: SupaEvent; onPress?: () => void }) {
   const { T } = useTheme();
   const wi = StyleSheet.create({
     wrap: {
@@ -181,13 +181,15 @@ function WhoIsGoingBar({ event }: { event: SupaEvent }) {
     bar:   { height: 6, backgroundColor: T.elevated, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
     fill:  { height: '100%', backgroundColor: T.gold, borderRadius: 3 },
     sub:   { color: T.textMute, fontSize: 12 },
+    seeRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.border },
+    seeTxt:{ color: T.accent, fontSize: 13, fontWeight: '600' },
   });
   const going = event.booking_count ?? 0;
   const pct = Math.min(going / (event.capacity || 1), 1);
   const spotsLeft = Math.max(0, event.capacity - going);
 
   return (
-    <View style={wi.wrap}>
+    <TouchableOpacity style={wi.wrap} onPress={onPress} activeOpacity={onPress ? 0.85 : 1} disabled={!onPress}>
       <View style={wi.top}>
         <Text style={wi.label}>WHO'S GOING</Text>
         <Text style={wi.count}>{going} / {event.capacity} spots taken</Text>
@@ -204,7 +206,13 @@ function WhoIsGoingBar({ event }: { event: SupaEvent }) {
           ? `🔥 Almost full — ${spotsLeft} spots left`
           : `${going} people going`}
       </Text>
-    </View>
+      {onPress && going > 0 && (
+        <View style={wi.seeRow}>
+          <Text style={wi.seeTxt}>See who’s going & your vibe match</Text>
+          <Feather name="arrow-right" size={15} color={T.accent} />
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -825,7 +833,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
               </TouchableOpacity>
             </>
           ) : (
-            <WhoIsGoingBar event={event} />
+            <WhoIsGoingBar event={event} onPress={() => navigation.navigate('EventAttendees', { eventId: event.id, eventTitle: event.title })} />
           )}
 
           {new Date(event.date).getTime() > Date.now() && <CountdownTimer targetDate={event.date} />}

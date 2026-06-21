@@ -17,6 +17,9 @@ import ConversationsScreen from '../features/chat/screens/ConversationsScreen';
 import NotificationsScreen from '../features/notifications/NotificationsScreen';
 import SettingsScreen from '../features/settings/SettingsScreen';
 import EditPlaylistScreen from '../features/parties/screens/EditPlaylistScreen';
+import UserProfileScreen from '../features/profile/screens/UserProfileScreen';
+import PeopleSearchScreen from '../features/people/screens/PeopleSearchScreen';
+import EventAttendeesScreen from '../features/parties/screens/EventAttendeesScreen';
 
 export type GuestStackParamList = {
   Home: undefined;
@@ -35,6 +38,9 @@ export type GuestStackParamList = {
   Notifications: undefined;
   Settings: undefined;
   EditPlaylist: { eventId: string; playlistUrl?: string | null; tracks?: any[] };
+  UserProfile: { userId: string };
+  PeopleSearch: undefined;
+  EventAttendees: { eventId: string; eventTitle?: string };
 };
 
 const Stack = createNativeStackNavigator<GuestStackParamList>();
@@ -82,6 +88,9 @@ export default function GuestNavigator({ initialRoute = 'Home' }: { initialRoute
       <Stack.Screen name="Notifications"  component={NotificationsScreen} />
       <Stack.Screen name="Settings"       component={SettingsScreen} />
       <Stack.Screen name="EditPlaylist"   component={EditPlaylistScreen} />
+      <Stack.Screen name="UserProfile"    component={UserProfileScreen} />
+      <Stack.Screen name="PeopleSearch"   component={PeopleSearchScreen} options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
     </Stack.Navigator>
   );
 }

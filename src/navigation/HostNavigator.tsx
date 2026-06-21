@@ -15,6 +15,9 @@ import ChatScreen           from '../features/chat/screens/ChatScreen';
 import ConversationsScreen  from '../features/chat/screens/ConversationsScreen';
 import ScanTicketScreen     from '../features/parties/screens/ScanTicketScreen';
 import EditPlaylistScreen   from '../features/parties/screens/EditPlaylistScreen';
+import UserProfileScreen    from '../features/profile/screens/UserProfileScreen';
+import PeopleSearchScreen   from '../features/people/screens/PeopleSearchScreen';
+import EventAttendeesScreen from '../features/parties/screens/EventAttendeesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,6 +42,9 @@ export default function HostNavigator() {
       <Stack.Screen name="Conversations"  component={ConversationsScreen} />
       <Stack.Screen name="ScanTicket"     component={ScanTicketScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="EditPlaylist"   component={EditPlaylistScreen} />
+      <Stack.Screen name="UserProfile"    component={UserProfileScreen} />
+      <Stack.Screen name="PeopleSearch"   component={PeopleSearchScreen} options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
     </Stack.Navigator>
   );
 }

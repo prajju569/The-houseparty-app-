@@ -1,4 +1,10 @@
-import type { Profile } from '../shared/types';
+/** Minimal shape needed to score a vibe match — lets us score the logged-in
+ *  Profile against any public_profiles/attendee row without a full Profile. */
+export type VibeInput = {
+  top_genres?: string[] | null;
+  top_artists?: string[] | null;
+  vibe_tags?: string[] | null;
+};
 
 export const ALL_GENRES = [
   'Hip-Hop', 'Electronic', 'Indie', 'R&B', 'Pop', 'Rock',
@@ -35,7 +41,7 @@ function artistOverlap(a: string[], b: string[]): number {
  * Returns a 0–100 vibe compatibility score between two profiles.
  * Weights: genres 40%, vibe_tags 35%, artists 25%
  */
-export function computeVibeScore(a: Profile, b: Profile): number {
+export function computeVibeScore(a: VibeInput, b: VibeInput): number {
   const genreScore  = jaccard(a.top_genres  ?? [], b.top_genres  ?? []);
   const vibeScore   = jaccard(a.vibe_tags   ?? [], b.vibe_tags   ?? []);
   const artistScore = artistOverlap(a.top_artists ?? [], b.top_artists ?? []);
