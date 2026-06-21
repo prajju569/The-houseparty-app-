@@ -128,3 +128,39 @@ END $$;
 -- Optional per-event age restriction. NULL = no restriction. The RSVP flow
 -- blocks a guest whose profile date_of_birth makes them younger than this.
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS min_age int;
+
+-- ── PROFILES: top songs + verified badge (social rework) ────────────────────
+-- top_songs: a user's up-to-5 favourite tracks, each {title, artist, thumbnail,
+-- url, platform}. Distinct from the host-owned event playlist. is_verified: a
+-- real verified-host flag (NOT self-settable — see the guard trigger below).
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS top_songs jsonb;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified boolean NOT NULL DEFAULT false;
+
+-- Re-expose the safe view WITH the two new columns. CREATE OR REPLACE VIEW only
+-- permits APPENDING columns, so the original 10 stay in their exact order and
+-- top_songs / is_verified are added at the end.
+CREATE OR REPLACE VIEW public.public_profiles AS
+  SELECT id, username, display_name, avatar_url, bio,
+         top_genres, top_artists, vibe_tags, role, is_private,
+         top_songs, is_verified
+  FROM public.profiles;
+ALTER VIEW public.public_profiles SET (security_invoker = false);
+REVOKE ALL ON public.public_profiles FROM anon, public;
+GRANT SELECT ON public.public_profiles TO authenticated;
+
+-- Guard: a normal session must not be able to verify itself. Any client UPDATE
+-- that tries to change is_verified is silently reverted to the old value; only
+-- the service role (SQL editor / admin) can flip it.
+CREATE OR REPLACE FUNCTION public.guard_is_verified()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.is_verified IS DISTINCT FROM OLD.is_verified
+     AND coalesce(auth.role(), '') <> 'service_role' THEN
+    NEW.is_verified := OLD.is_verified;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_guard_is_verified ON public.profiles;
+CREATE TRIGGER trg_guard_is_verified BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.guard_is_verified();
