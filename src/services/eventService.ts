@@ -46,6 +46,7 @@
 
 import { supabase } from './supabaseClient';
 import { blobTooLarge } from '../shared/utils/image';
+import type { PlaylistTrack } from './playlistService';
 
 export type Event = {
   id: string;
@@ -61,6 +62,8 @@ export type Event = {
   entry_fee: number;
   min_age?: number | null;
   cover_image?: string | null;
+  playlist_url?: string | null;
+  playlist_tracks?: PlaylistTrack[] | null;
   lat?: number | null;
   lng?: number | null;
   nearest_metro?: string | null;

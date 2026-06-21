@@ -16,6 +16,7 @@ export default function CreateStep5Screen({ route, navigation }: Props) {
     title, description, vibe, date,
     capacity, entry_fee, venue, address, area, lat, lng,
     is_private, coverLocalUri, extraPhotoUris = [], min_age = null,
+    playlist_url = null, playlist_tracks = null,
   } = route.params;
 
   const { session } = useAuthStore();
@@ -49,6 +50,8 @@ export default function CreateStep5Screen({ route, navigation }: Props) {
       entry_fee,
       min_age:     min_age ?? null,
       cover_image,
+      playlist_url:    playlist_url ?? null,
+      playlist_tracks: playlist_tracks ?? null,
       is_private,
       status: 'upcoming',
     });

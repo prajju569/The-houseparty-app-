@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
   StatusBar, Image, Platform, ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { validatePickedImage } from '../../../../shared/utils/image';
+import { detectPlatform, importSpotifyPlaylist, type PlaylistTrack } from '../../../../services/playlistService';
 
 const MAX_PHOTOS = 5;
 
@@ -17,6 +18,33 @@ export default function CreateStep4Screen({ route, navigation }: Props) {
   // photoUris[0] = cover, [1..4] = additional gallery photos
   const [photoUris, setPhotoUris] = useState<(string | null)[]>([null, null, null, null, null]);
   const [picking,   setPicking]   = useState<number | null>(null);
+
+  // Party playlist — the HOST sets this for the event (distinct from a user's
+  // own top-5 songs on their profile). Spotify links auto-import the track list.
+  const [playlistUrl,    setPlaylistUrl]    = useState('');
+  const [playlistTracks, setPlaylistTracks] = useState<PlaylistTrack[]>([]);
+  const [importing,      setImporting]      = useState(false);
+
+  async function onPlaylistBlur() {
+    const u = playlistUrl.trim();
+    if (!u) { setPlaylistTracks([]); return; }
+    if (detectPlatform(u) !== 'spotify') {
+      // YouTube import arrives once the YouTube Data API key is wired; until then
+      // we keep the link so guests can still open it, with no imported tracks.
+      setPlaylistTracks([]);
+      return;
+    }
+    setImporting(true);
+    const res = await importSpotifyPlaylist(u);
+    setImporting(false);
+    if (res.ok) {
+      setPlaylistTracks(res.tracks);
+      Alert.alert(`✅ ${res.meta.title}`, `Imported ${res.tracks.length} track${res.tracks.length === 1 ? '' : 's'} for your party.`);
+    } else {
+      setPlaylistTracks([]);
+      Alert.alert('Could not import playlist', `${res.error}\n\nYou can still add it later from the event's Playlist tab.`);
+    }
+  }
 
   async function pickForSlot(index: number) {
     setPicking(index);
@@ -51,6 +79,8 @@ export default function CreateStep4Screen({ route, navigation }: Props) {
       ...prev,
       coverLocalUri: photoUris[0],
       extraPhotoUris: photoUris.slice(1).filter(Boolean) as string[],
+      playlist_url: playlistUrl.trim() || null,
+      playlist_tracks: playlistTracks.length ? playlistTracks : null,
     });
   }
 
@@ -147,6 +177,29 @@ export default function CreateStep4Screen({ route, navigation }: Props) {
             <Text style={s.countNote}>{filledCount}/{MAX_PHOTOS} photo{filledCount !== 1 ? 's' : ''} selected</Text>
           )}
 
+          {/* Party playlist — host-set, shown to guests on the event */}
+          <Text style={[s.slotLabel, { marginTop: 28 }]}>
+            Party playlist <Text style={s.slotSub}>(optional)</Text>
+          </Text>
+          <View style={s.playlistRow}>
+            <Feather name="music" size={15} color="rgba(232,227,216,0.45)" style={{ marginLeft: 14 }} />
+            <TextInput
+              style={s.playlistInput}
+              value={playlistUrl}
+              onChangeText={setPlaylistUrl}
+              onBlur={onPlaylistBlur}
+              placeholder="Paste a Spotify playlist link…"
+              placeholderTextColor="rgba(244,242,236,0.3)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+            {importing && <ActivityIndicator size="small" color="rgba(232,227,216,0.5)" style={{ marginRight: 14 }} />}
+          </View>
+          {playlistTracks.length > 0 && (
+            <Text style={s.playlistHint}>🎵 {playlistTracks.length} tracks imported — your guests will see this on the event.</Text>
+          )}
+
           <View style={{ height: 32 }} />
 
           <View style={s.btns}>
@@ -217,6 +270,10 @@ const s = StyleSheet.create({
   gridPreview: { width: '100%', height: '100%' },
 
   countNote: { color: 'rgba(244,242,236,0.38)', fontSize: 12, textAlign: 'center', marginTop: 14 },
+
+  playlistRow:   { flexDirection: 'row', alignItems: 'center', height: 54, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  playlistInput: { flex: 1, height: '100%', paddingHorizontal: 12, color: '#F4F2EC', fontSize: 14 },
+  playlistHint:  { color: 'rgba(232,227,216,0.5)', fontSize: 12, marginTop: 10 },
 
   btns:    { flexDirection: 'row', gap: 12, alignItems: 'center' },
   skipBtn: { height: 56, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
